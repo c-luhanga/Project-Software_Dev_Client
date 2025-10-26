@@ -22,6 +22,12 @@ export interface UserProfile {
 
 export interface UserPermissions {
   isAdmin: boolean;
+  isBanned?: boolean;
+}
+
+export interface UserTimestamps {
+  createdAt?: Date;
+  lastSeen?: Date;
 }
 
 // Authentication request interfaces
@@ -41,7 +47,7 @@ export interface LoginResponse extends AuthToken, UserIdentity {
 // User interfaces following Interface Segregation Principle
 export interface BaseUser extends UserIdentity, PersonalInfo {}
 
-export interface FullUserProfile extends BaseUser, UserProfile, UserPermissions {}
+export interface FullUserProfile extends BaseUser, UserProfile, UserPermissions, UserTimestamps {}
 
 // Type aliases for common use cases
 export type User = FullUserProfile;
