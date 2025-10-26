@@ -27,6 +27,9 @@ interface ApiUserResponse {
   house?: string;
   profileImageUrl?: string;
   isAdmin: boolean;
+  isBanned: boolean;
+  createdAt: string;
+  lastSeen?: string;
 }
 
 interface ApiRegisterResponse {
@@ -79,7 +82,7 @@ export class AuthRepository implements IAuthRepository {
   async getMe(): Promise<User> {
     try {
       const response = await this.apiClient.get<ApiUserResponse>(
-        `${this.baseEndpoint}/me`
+        '/users/me'
       );
 
       return this.mapUserResponse(response);
@@ -140,6 +143,9 @@ export class AuthRepository implements IAuthRepository {
       house: apiResponse.house,
       profileImageUrl: apiResponse.profileImageUrl,
       isAdmin: apiResponse.isAdmin,
+      isBanned: apiResponse.isBanned,
+      createdAt: apiResponse.createdAt ? new Date(apiResponse.createdAt) : undefined,
+      lastSeen: apiResponse.lastSeen ? new Date(apiResponse.lastSeen) : undefined,
     };
   }
 }

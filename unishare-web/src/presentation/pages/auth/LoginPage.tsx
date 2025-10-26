@@ -1,13 +1,12 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Link } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Box, Container, Typography, Link, Alert } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
 import { 
   loginThunk, 
   selectAuthStatus, 
   selectAuthError, 
-  selectIsAuthenticated,
-  clearError 
+  selectIsAuthenticated
 } from '../../../store/authSlice';
 import { LoginForm } from '../../components/auth';
 import { AuthErrorDisplay } from '../../components/common/ErrorDisplay';
@@ -31,8 +30,14 @@ import type { LoginRequest } from '../../../types/auth';
  */
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { clearAuthError, canRetry } = useAuthErrorHandler();
+
+  // Check for registration success message
+  const [successMessage, setSuccessMessage] = useState<string | null>(
+    (location.state as { message?: string })?.message || null
+  );
 
   // Select auth state from Redux store
   const authStatus = useAppSelector(selectAuthStatus);
@@ -157,11 +162,22 @@ export const LoginPage: React.FC = () => {
             </Typography>
           </Box>
 
+          {/* Success Message from Registration */}
+          {successMessage && (
+            <Alert 
+              severity="success" 
+              onClose={() => setSuccessMessage(null)}
+              sx={{ width: '100%' }}
+            >
+              {successMessage}
+            </Alert>
+          )}
+
           {/* Error Display */}
           <AuthErrorDisplay
-            error={authError}
+            error={authError || null}
             onClose={clearAuthError}
-            onRetry={canRetry(authError) ? handleRetry : undefined}
+            onRetry={canRetry(authError || null) ? handleRetry : undefined}
             data-testid="login-error"
           />
 

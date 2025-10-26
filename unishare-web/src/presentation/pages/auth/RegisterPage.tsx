@@ -6,8 +6,7 @@ import {
   registerThunk,
   selectAuthStatus, 
   selectAuthError, 
-  selectIsAuthenticated,
-  clearError 
+  selectIsAuthenticated
 } from '../../../store/authSlice';
 import { RegisterForm } from '../../components/auth';
 import { AuthErrorDisplay } from '../../components/common/ErrorDisplay';
@@ -59,9 +58,14 @@ export const RegisterPage: React.FC = () => {
       
       // Handle successful registration
       if (registerThunk.fulfilled.match(result)) {
-        // Registration automatically logs the user in through the service
-        // Navigate to home page after successful registration and auto-login
-        navigate('/', { replace: true });
+        // Registration successful - redirect to login page
+        // User needs to login separately to access the application
+        navigate('/auth/login', { 
+          replace: true,
+          state: { 
+            message: 'Registration successful! Please log in with your credentials.' 
+          }
+        });
       }
       // Error handling is automatic through Redux slice
     } catch (error) {
@@ -154,9 +158,9 @@ export const RegisterPage: React.FC = () => {
 
           {/* Error Display */}
           <AuthErrorDisplay
-            error={authError}
+            error={authError || null}
             onClose={clearAuthError}
-            onRetry={canRetry(authError) ? handleRetry : undefined}
+            onRetry={canRetry(authError || null) ? handleRetry : undefined}
             data-testid="register-error"
           />
 

@@ -216,16 +216,10 @@ export const authSlice = createSlice({
         state.status = 'loading';
         state.error = undefined;
       })
-      .addCase(registerThunk.fulfilled, (state, action) => {
+      .addCase(registerThunk.fulfilled, (state) => {
         state.status = 'succeeded';
-        state.token = action.payload.token;
-        state.user = {
-          userId: action.payload.userId,
-          firstName: action.payload.name.split(' ')[0] || '',
-          lastName: action.payload.name.split(' ').slice(1).join(' ') || '',
-          email: action.payload.email,
-          isAdmin: false,
-        } as User;
+        // Registration only returns { userId }, doesn't auto-login
+        // User needs to login separately to get token and profile
         state.error = undefined;
       })
       .addCase(registerThunk.rejected, (state, action) => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
 import { store } from '../store/store';
 import { AppThemeProvider } from '../presentation/theme';
 
@@ -15,6 +16,7 @@ export interface ProvidersProps {
  * 
  * Responsibility: Wraps the application with necessary providers
  * - Redux Provider for state management
+ * - BrowserRouter for routing context
  * - AppThemeProvider for MUI styling with CssBaseline
  * 
  * No business logic - pure provider composition
@@ -22,9 +24,11 @@ export interface ProvidersProps {
 export const Providers: React.FC<ProvidersProps> = ({ children }) => {
   return (
     <Provider store={store}>
-      <AppThemeProvider>
-        {children}
-      </AppThemeProvider>
+      <BrowserRouter>
+        <AppThemeProvider>
+          {children}
+        </AppThemeProvider>
+      </BrowserRouter>
     </Provider>
   );
 };
