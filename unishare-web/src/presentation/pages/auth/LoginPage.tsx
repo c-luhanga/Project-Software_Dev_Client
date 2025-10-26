@@ -10,6 +10,8 @@ import {
   clearError 
 } from '../../../store/authSlice';
 import { LoginForm } from '../../components/auth';
+import { AuthErrorDisplay } from '../../components/common/ErrorDisplay';
+import { useAuthErrorHandler } from '../../../hooks/useErrorHandler';
 import type { LoginRequest } from '../../../types/auth';
 
 /**
@@ -19,15 +21,18 @@ import type { LoginRequest } from '../../../types/auth';
  * - Connect LoginForm to Redux state and actions
  * - Handle navigation and side effects
  * - Manage authentication flow orchestration
+ * - Display user-friendly error messages
  * 
  * Dependencies:
  * - Depends on Redux slice/thunks (DIP through Redux abstractions)
  * - Does NOT depend on repositories/services directly
  * - Uses navigation abstraction for routing
+ * - Uses error handling utilities for UX
  */
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { clearAuthError, canRetry } = useAuthErrorHandler();
 
   // Select auth state from Redux store
   const authStatus = useAppSelector(selectAuthStatus);
@@ -45,7 +50,7 @@ export const LoginPage: React.FC = () => {
     try {
       // Clear any previous errors
       if (authError) {
-        dispatch(clearError());
+        clearAuthError();
       }
 
       // Dispatch login thunk - DIP through Redux thunk abstraction
@@ -61,6 +66,14 @@ export const LoginPage: React.FC = () => {
       // Error handling is managed by Redux slice
       console.error('Login error:', error);
     }
+  };
+
+  /**
+   * Handle retry for retryable errors
+   */
+  const handleRetry = () => {
+    // Clear error and let user try again
+    clearAuthError();
   };
 
   /**
@@ -94,10 +107,10 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (authError) {
-        dispatch(clearError());
+        clearAuthError();
       }
     };
-  }, [authError, dispatch]);
+  }, [authError, clearAuthError]);
 
   return (
     <Box
@@ -144,11 +157,18 @@ export const LoginPage: React.FC = () => {
             </Typography>
           </Box>
 
+          {/* Error Display */}
+          <AuthErrorDisplay
+            error={authError}
+            onClose={clearAuthError}
+            onRetry={canRetry(authError) ? handleRetry : undefined}
+            data-testid="login-error"
+          />
+
           {/* Login Form - Pure presentational component */}
           <LoginForm
             onSubmit={handleLogin}
             loading={isLoading}
-            error={authError}
             onForgotPassword={handleForgotPassword}
             submitButtonText="Sign In to UniShare"
           />

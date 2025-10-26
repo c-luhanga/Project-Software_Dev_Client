@@ -26,8 +26,6 @@ export interface LoginFormProps {
   onSubmit: (credentials: LoginRequest) => void;
   /** Loading state to show progress indicator */
   loading?: boolean;
-  /** Error message to display */
-  error?: string;
   /** Whether to show the forgot password link */
   showForgotPassword?: boolean;
   /** Callback for forgot password action */
@@ -54,7 +52,6 @@ export interface LoginFormProps {
 export const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
   loading = false,
-  error,
   showForgotPassword = true,
   onForgotPassword,
   submitButtonText = 'Sign In',
@@ -202,17 +199,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         >
           Sign in to your account to continue
         </Typography>
-
-        {/* Error Alert */}
-        {error && (
-          <Alert 
-            severity="error" 
-            sx={{ mb: 3 }}
-            onClose={() => {/* Parent component should handle error clearing */}}
-          >
-            {error}
-          </Alert>
-        )}
 
         {/* Email Field */}
         <TextField

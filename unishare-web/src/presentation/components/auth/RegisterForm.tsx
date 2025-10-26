@@ -27,8 +27,6 @@ export interface RegisterFormProps {
   onSubmit: (data: RegisterRequest) => void;
   /** Loading state to show progress indicator */
   loading?: boolean;
-  /** Error message to display */
-  error?: string;
   /** Custom submit button text */
   submitButtonText?: string;
   /** Whether to disable the form */
@@ -55,7 +53,6 @@ export interface RegisterFormProps {
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   onSubmit,
   loading = false,
-  error,
   submitButtonText = 'Create Account',
   disabled = false,
   showLoginLink = true,
@@ -352,17 +349,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         >
           Join UniShare to start sharing knowledge
         </Typography>
-
-        {/* Error Alert */}
-        {error && (
-          <Alert 
-            severity="error" 
-            sx={{ mb: 3 }}
-            onClose={() => {/* Parent component should handle error clearing */}}
-          >
-            {error}
-          </Alert>
-        )}
 
         {/* Name Fields */}
         <Box 

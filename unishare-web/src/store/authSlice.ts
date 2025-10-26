@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { LoginRequest, RegisterRequest, LoginResponse, User } from '../types/auth';
 import type { AsyncThunkConfig } from './store';
+import { mapError } from '../utils/errorMapper';
 
 /**
  * Auth state interface following Single Responsibility Principle
@@ -46,7 +47,8 @@ export const loginThunk = createAsyncThunk<
       // Token is automatically set in AxiosApiClient through the service
       return response;
     } catch (error: any) {
-      return rejectWithValue(error?.message || 'Login failed');
+      const mappedError = mapError(error);
+      return rejectWithValue(mappedError.message);
     }
   }
 );
@@ -68,7 +70,8 @@ export const registerThunk = createAsyncThunk<
       // Token is automatically set in AxiosApiClient through the service
       return response;
     } catch (error: any) {
-      return rejectWithValue(error?.message || 'Registration failed');
+      const mappedError = mapError(error);
+      return rejectWithValue(mappedError.message);
     }
   }
 );
@@ -87,7 +90,8 @@ export const getMeThunk = createAsyncThunk<
       const authService = container.authService;
       return await authService.getCurrentUser();
     } catch (error: any) {
-      return rejectWithValue(error?.message || 'Failed to get user data');
+      const mappedError = mapError(error);
+      return rejectWithValue(mappedError.message);
     }
   }
 );
@@ -109,7 +113,8 @@ export const refreshTokenThunk = createAsyncThunk<
       // Token is automatically updated in AxiosApiClient through the service
       return response;
     } catch (error: any) {
-      return rejectWithValue(error?.message || 'Token refresh failed');
+      const mappedError = mapError(error);
+      return rejectWithValue(mappedError.message);
     }
   }
 );
