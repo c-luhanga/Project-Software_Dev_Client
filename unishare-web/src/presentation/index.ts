@@ -9,5 +9,8 @@ export * from './components';
 // Pages
 export * from './pages';
 
+// Routes
+export * from './routes';
+
 // Theme
 export * from './theme';
