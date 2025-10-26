@@ -5,5 +5,8 @@
 export { LoginForm } from './LoginForm';
 export type { LoginFormProps } from './LoginForm';
 
-// Default export for convenience
+export { RegisterForm } from './RegisterForm';
+export type { RegisterFormProps } from './RegisterForm';
+
+// Default exports for convenience
 export { LoginForm as default } from './LoginForm';
