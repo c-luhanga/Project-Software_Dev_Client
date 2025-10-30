@@ -84,20 +84,8 @@ export class UserRepository implements IUserRepository {
    */
   async getMyItems(): Promise<ItemSummary[]> {
     try {
-      // Try dedicated endpoint first, fallback to filtered query
-      let response: ApiItemSummary[];
-      
-      try {
-        // Attempt to use dedicated "my items" endpoint if available
-        response = await this.apiClient.get<ApiItemSummary[]>('/items/mine');
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          // Fallback to general items endpoint with self filter
-          response = await this.apiClient.get<ApiItemSummary[]>('/items?sellerId=self');
-        } else {
-          throw error;
-        }
-      }
+      // Use the correct backend endpoint for getting current user's items
+      const response = await this.apiClient.get<ApiItemSummary[]>('/items/my-items');
 
       // Map API response to domain ItemSummary[]
       return response.map(this.mapToItemSummary);

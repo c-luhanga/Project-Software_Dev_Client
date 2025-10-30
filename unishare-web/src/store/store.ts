@@ -32,9 +32,25 @@ export const store = configureStore({
           container: container,
         } as ThunkExtraArgument,
       },
-      // Enable additional middleware for development
+      // Configure serializable check to allow Date objects in specific paths
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        // Allow Date objects in profile-related state paths
+        ignoredActionsPaths: ['payload.createdAt', 'payload.lastSeen', 'payload.postedDate'],
+        ignoredPaths: [
+          'profile.profile.createdAt',
+          'profile.profile.lastSeen',
+          'profile.items.0.postedDate',
+          'profile.items.1.postedDate',
+          'profile.items.2.postedDate',
+          'profile.items.3.postedDate',
+          'profile.items.4.postedDate',
+          'profile.items.5.postedDate',
+          'profile.items.6.postedDate',
+          'profile.items.7.postedDate',
+          'profile.items.8.postedDate',
+          'profile.items.9.postedDate',
+        ],
       },
     }),
   // Enable Redux DevTools in development
