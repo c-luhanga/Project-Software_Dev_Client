@@ -24,3 +24,9 @@ export {
 export type {
   ValidationResult
 } from './user/validators';
+
+// User domain services
+export {
+  UserService,
+  createUserService
+} from './user/userService';
