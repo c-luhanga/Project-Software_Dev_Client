@@ -1,6 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
 import type { RootState, AppDispatch } from '../store/store';
+import { useState, useCallback } from 'react';
 
 /**
  * Typed hooks for Redux following Single Responsibility Principle
@@ -29,3 +30,43 @@ export const useStore = () => {
   
   return { dispatch, selector } as const;
 };
+
+/**
+ * Generic hook for async operations with loading states
+ * Helps with consistent error handling across components
+ */
+export function useAsyncOperation<T>() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<T | null>(null);
+
+  const execute = useCallback(async (operation: () => Promise<T>) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await operation();
+      setData(result);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setIsLoading(false);
+    setError(null);
+    setData(null);
+  }, []);
+
+  return {
+    isLoading,
+    error,
+    data,
+    execute,
+    reset
+  };
+}
