@@ -143,10 +143,25 @@ const App: React.FC = () => {
    */
   const renderAuthenticatedUser = () => (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {/* Profile Link */}
+        <Button
+          color="inherit"
+          onClick={handleProfile}
+          sx={{
+            textTransform: 'none',
+            display: { xs: 'none', md: 'block' },
+          }}
+        >
+          Profile
+        </Button>
+        
+        {/* User Info */}
         <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
           Welcome, {user?.firstName}
         </Typography>
+        
+        {/* User Avatar Menu */}
         <IconButton
           size="large"
           aria-label="account menu"
