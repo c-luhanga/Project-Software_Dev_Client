@@ -13,3 +13,14 @@ export type {
   IUserRepository,
   IUserService
 } from './user/contracts';
+
+// User domain validation
+export {
+  UserValidationError,
+  UserProfileValidator,
+  validateUpdateProfile
+} from './user/validators';
+
+export type {
+  ValidationResult
+} from './user/validators';
