@@ -1,68 +1,90 @@
-// Generic HTTP client interface following Dependency Inversion Principle
+/**
+ * HTTP Client Abstraction (Dependency Inversion Principle)
+ * 
+ * Pure interface defining HTTP operations without implementation details
+ * Allows dependency injection and easy testing/mocking
+ * No framework-specific types (axios, fetch, etc.) - pure abstraction
+ */
+
+/**
+ * Generic HTTP client interface following DIP
+ * High-level modules depend on this abstraction, not concrete implementations
+ */
 export interface IApiClient {
   /**
-   * Performs a GET request to the specified endpoint
-   * @param url - The endpoint URL
-   * @param config - Optional request configuration
-   * @returns Promise with the response data
+   * Perform HTTP GET request
+   * @param url Relative or absolute URL
+   * @returns Promise resolving to typed response data
+   * @throws Error for network/HTTP errors
    */
-  get<T>(url: string, config?: RequestConfig): Promise<T>;
+  get<T = unknown>(url: string): Promise<T>;
 
   /**
-   * Performs a POST request to the specified endpoint
-   * @param url - The endpoint URL
-   * @param data - The request payload
-   * @param config - Optional request configuration
-   * @returns Promise with the response data
+   * Perform HTTP POST request
+   * @param url Relative or absolute URL
+   * @param body Optional request body
+   * @returns Promise resolving to typed response data
+   * @throws Error for network/HTTP errors
    */
-  post<T>(url: string, data?: unknown, config?: RequestConfig): Promise<T>;
+  post<T = unknown>(url: string, body?: unknown): Promise<T>;
 
   /**
-   * Performs a PUT request to the specified endpoint
-   * @param url - The endpoint URL
-   * @param data - The request payload
-   * @param config - Optional request configuration
-   * @returns Promise with the response data
+   * Perform HTTP PUT request
+   * @param url Relative or absolute URL
+   * @param body Optional request body
+   * @returns Promise resolving to typed response data
+   * @throws Error for network/HTTP errors
    */
-  put<T>(url: string, data?: unknown, config?: RequestConfig): Promise<T>;
+  put<T = unknown>(url: string, body?: unknown): Promise<T>;
 
   /**
-   * Performs a DELETE request to the specified endpoint
-   * @param url - The endpoint URL
-   * @param config - Optional request configuration
-   * @returns Promise with the response data
+   * Perform HTTP DELETE request
+   * @param url Relative or absolute URL
+   * @returns Promise resolving to typed response data
+   * @throws Error for network/HTTP errors
    */
-  delete<T>(url: string, config?: RequestConfig): Promise<T>;
+  delete<T = unknown>(url: string): Promise<T>;
 
   /**
-   * Sets the authentication token for subsequent requests
-   * @param token - The authentication token
+   * Set authentication token for subsequent requests
+   * @param token JWT token string or null to clear
    */
-  setAuthToken(token: string): void;
-
-  /**
-   * Gets the current authentication token
-   * @returns The current token or null if not set
-   */
-  getAuthToken(): string | null;
-
-  /**
-   * Removes the authentication token
-   */
-  clearAuthToken(): void;
+  setToken(token: string | null): void;
 }
 
-// Generic request configuration interface
-export interface RequestConfig {
-  headers?: Record<string, string>;
-  params?: Record<string, unknown>;
-  timeout?: number;
+/**
+ * HTTP error with structured information
+ * Provides consistent error format across different HTTP client implementations
+ */
+export class ApiError extends Error {
+  public readonly status: number;
+  public readonly statusText: string;
+  public readonly url: string;
+  public readonly data?: unknown;
+
+  constructor(
+    message: string,
+    status: number,
+    statusText: string,
+    url: string,
+    data?: unknown
+  ) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.statusText = statusText;
+    this.url = url;
+    this.data = data;
+  }
 }
 
-// Generic API error interface
-export interface ApiError {
-  message: string;
-  status?: number;
-  code?: string;
-  details?: unknown;
+/**
+ * Authentication error (401) with specific handling
+ * Allows application to distinguish auth failures from other API errors
+ */
+export class AuthenticationError extends ApiError {
+  constructor(url: string, data?: unknown) {
+    super('Authentication required', 401, 'Unauthorized', url, data);
+    this.name = 'AuthenticationError';
+  }
 }

@@ -1,132 +1,189 @@
-import axios, { AxiosError } from 'axios';
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import type { IApiClient, RequestConfig, ApiError } from './IApiClient';
+/**
+ * Axios Implementation of IApiClient (Dependency Inversion Principle)
+ * 
+ * Concrete implementation following Single Responsibility Principle:
+ * - Handles HTTP requests via Axios
+ * - Manages authentication token internally
+ * - Normalizes 401 errors to AuthenticationError
+ * - Provides consistent error handling
+ */
+
+import axios, { type AxiosInstance, type AxiosError } from 'axios';
+import type { IApiClient } from './IApiClient';
+import { ApiError, AuthenticationError } from './IApiClient';
 
 /**
- * Axios implementation of IApiClient following Single Responsibility Principle
- * Handles HTTP requests and token management internally
+ * Axios-based implementation of IApiClient interface
+ * Follows SRP by focusing solely on HTTP communication via Axios
  */
 export class AxiosApiClient implements IApiClient {
-  private axiosInstance: AxiosInstance;
+  private readonly axiosInstance: AxiosInstance;
   private authToken: string | null = null;
 
   constructor() {
-    // Initialize axios instance with base configuration
+    // Initialize Axios instance with base configuration
     this.axiosInstance = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-      timeout: 10000,
+      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5100/api',
+      timeout: 30000, // 30 second timeout
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
-    this.setupInterceptors();
-  }
-
-  /**
-   * Setup request and response interceptors
-   */
-  private setupInterceptors(): void {
-    // Request interceptor to attach authorization header
+    // Request interceptor to add authentication header
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        if (this.authToken && config.headers) {
+        if (this.authToken) {
           config.headers.Authorization = `Bearer ${this.authToken}`;
         }
         return config;
       },
-      (error) => {
-        return Promise.reject(this.normalizeError(error));
-      }
+      (error) => Promise.reject(error)
     );
 
-    // Response interceptor to normalize errors
+    // Response interceptor for error handling and 401 normalization
     this.axiosInstance.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response) => response,
       (error: AxiosError) => {
-        return Promise.reject(this.normalizeError(error));
+        const apiError = this.normalizeError(error);
+        return Promise.reject(apiError);
       }
     );
   }
 
   /**
-   * Normalize axios errors to generic ApiError format
+   * Perform HTTP GET request
    */
-  private normalizeError(error: AxiosError): ApiError {
-    const apiError: ApiError = {
-      message: error.message || 'An unexpected error occurred',
-      status: error.response?.status,
-      code: error.code,
-      details: error.response?.data,
-    };
-
-    // Handle specific error cases
-    if (error.response) {
-      // Server responded with error status
-      const { status, data } = error.response;
-      apiError.message = (data as any)?.message || `HTTP ${status} Error`;
-      apiError.status = status;
-      apiError.details = data;
-    } else if (error.request) {
-      // Request was made but no response received
-      apiError.message = 'Network error - no response received';
+  async get<T = unknown>(url: string): Promise<T> {
+    try {
+      const response = await this.axiosInstance.get<T>(url);
+      return response.data;
+    } catch (error) {
+      throw error; // Already normalized by interceptor
     }
-
-    return apiError;
   }
 
   /**
-   * Convert generic RequestConfig to AxiosRequestConfig
+   * Perform HTTP POST request
    */
-  private mapConfig(config?: RequestConfig): AxiosRequestConfig {
-    if (!config) return {};
-
-    return {
-      headers: config.headers,
-      params: config.params,
-      timeout: config.timeout,
-    };
-  }
-
-  async get<T>(url: string, config?: RequestConfig): Promise<T> {
-    const response = await this.axiosInstance.get<T>(url, this.mapConfig(config));
-    return response.data;
-  }
-
-  async post<T>(url: string, data?: unknown, config?: RequestConfig): Promise<T> {
-    const response = await this.axiosInstance.post<T>(url, data, this.mapConfig(config));
-    return response.data;
-  }
-
-  async put<T>(url: string, data?: unknown, config?: RequestConfig): Promise<T> {
-    const response = await this.axiosInstance.put<T>(url, data, this.mapConfig(config));
-    return response.data;
-  }
-
-  async delete<T>(url: string, config?: RequestConfig): Promise<T> {
-    const response = await this.axiosInstance.delete<T>(url, this.mapConfig(config));
-    return response.data;
-  }
-
-  setAuthToken(token: string): void {
-    this.authToken = token;
-    // Optionally persist to localStorage for session management
-    localStorage.setItem('auth_token', token);
-  }
-
-  getAuthToken(): string | null {
-    // Return current token or retrieve from localStorage if not set
-    if (!this.authToken) {
-      this.authToken = localStorage.getItem('auth_token');
+  async post<T = unknown>(url: string, body?: unknown): Promise<T> {
+    try {
+      const response = await this.axiosInstance.post<T>(url, body);
+      return response.data;
+    } catch (error) {
+      throw error; // Already normalized by interceptor
     }
-    return this.authToken;
   }
 
-  clearAuthToken(): void {
-    this.authToken = null;
-    localStorage.removeItem('auth_token');
+  /**
+   * Perform HTTP PUT request
+   */
+  async put<T = unknown>(url: string, body?: unknown): Promise<T> {
+    try {
+      const response = await this.axiosInstance.put<T>(url, body);
+      return response.data;
+    } catch (error) {
+      throw error; // Already normalized by interceptor
+    }
+  }
+
+  /**
+   * Perform HTTP DELETE request
+   */
+  async delete<T = unknown>(url: string): Promise<T> {
+    try {
+      const response = await this.axiosInstance.delete<T>(url);
+      return response.data;
+    } catch (error) {
+      throw error; // Already normalized by interceptor
+    }
+  }
+
+  /**
+   * Set authentication token for subsequent requests
+   * @param token JWT token string or null to clear
+   */
+  setToken(token: string | null): void {
+    this.authToken = token;
+  }
+
+  /**
+   * Normalize Axios errors to consistent ApiError format
+   * Special handling for 401 status codes (AuthenticationError)
+   */
+  private normalizeError(error: AxiosError): ApiError | AuthenticationError {
+    const status = error.response?.status ?? 0;
+    const statusText = error.response?.statusText ?? 'Unknown Error';
+    const url = error.config?.url ?? 'unknown';
+    const data = error.response?.data;
+
+    // Normalize 401 errors to AuthenticationError
+    if (status === 401) {
+      return new AuthenticationError(url, data);
+    }
+
+    // Create generic ApiError for other HTTP errors
+    const message = this.extractErrorMessage(error);
+    return new ApiError(message, status, statusText, url, data);
+  }
+
+  /**
+   * Extract meaningful error message from Axios error
+   * Handles various error scenarios (network, timeout, HTTP errors)
+   */
+  private extractErrorMessage(error: AxiosError): string {
+    // Network or timeout errors
+    if (!error.response) {
+      if (error.code === 'ECONNREFUSED') {
+        return 'Unable to connect to server. Please check your connection.';
+      }
+      if (error.code === 'ECONNABORTED') {
+        return 'Request timeout. Please try again.';
+      }
+      return error.message || 'Network error occurred';
+    }
+
+    // HTTP errors with response
+    const status = error.response.status;
+    const data = error.response.data as any;
+
+    // Extract message from response data if available
+    if (data?.message) {
+      return data.message;
+    }
+
+    if (data?.detail) {
+      return data.detail;
+    }
+
+    if (data?.title) {
+      return data.title;
+    }
+
+    // Fallback to generic HTTP status messages
+    switch (status) {
+      case 400:
+        return 'Bad request. Please check your input.';
+      case 401:
+        return 'Authentication required.';
+      case 403:
+        return 'Access denied.';
+      case 404:
+        return 'Resource not found.';
+      case 409:
+        return 'Conflict occurred.';
+      case 422:
+        return 'Validation failed.';
+      case 500:
+        return 'Internal server error.';
+      default:
+        return `HTTP ${status}: ${error.response.statusText}`;
+    }
   }
 }
 
-// Export singleton instance for easy consumption
+/**
+ * Default instance for application use
+ * Singleton pattern for consistent client across the app
+ */
 export const apiClient = new AxiosApiClient();
