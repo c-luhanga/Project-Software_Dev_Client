@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import { LoginPage, RegisterPage } from '../pages/auth';
 import { HomePage } from '../pages/HomePage';
+import { ProfilePage } from '../pages/profile';
 
 /**
  * Main application router following Single Responsibility Principle
@@ -11,6 +12,7 @@ import { HomePage } from '../pages/HomePage';
  * - Define application routes and their corresponding components
  * - Configure protected and public routes
  * - Handle route-level redirects and navigation
+ * - Protect sensitive routes with authentication guards
  * 
  * Does NOT:
  * - Handle authentication logic (delegated to ProtectedRoute)
@@ -65,12 +67,12 @@ export const AppRouter: React.FC = () => {
         }
       />
       
-      {/* Protected Profile Routes (placeholder for future) */}
+      {/* Protected Profile Routes */}
       <Route
         path="/profile"
         element={
           <ProtectedRoute>
-            <HomePage />
+            <ProfilePage />
           </ProtectedRoute>
         }
       />
