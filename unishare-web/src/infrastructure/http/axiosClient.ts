@@ -108,6 +108,14 @@ export class AxiosApiClient implements IApiClient {
   }
 
   /**
+   * Get current authentication token
+   * @returns Current token or null if not set
+   */
+  getToken(): string | null {
+    return this.authToken;
+  }
+
+  /**
    * Normalize Axios errors to consistent ApiError format
    * Special handling for 401 status codes (AuthenticationError)
    */

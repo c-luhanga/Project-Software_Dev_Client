@@ -108,10 +108,10 @@ export class AuthRepository implements IAuthRepository {
       await this.apiClient.post(`${this.baseEndpoint}/logout`);
       
       // Clear token from API client after successful server logout
-      this.apiClient.clearAuthToken();
+      this.apiClient.setToken(null);
     } catch (error) {
       // Even if server logout fails, clear local token
-      this.apiClient.clearAuthToken();
+      this.apiClient.setToken(null);
       throw error;
     }
   }

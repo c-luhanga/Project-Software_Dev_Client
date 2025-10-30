@@ -1,11 +1,14 @@
 import type { IApiClient } from '../infrastructure/http/IApiClient';
 import type { IAuthRepository } from '../infrastructure/auth/IAuthRepository';
 import type { IAuthService, IAuthValidator, ITokenManager } from '../domain/auth/IAuthService';
+import type { IUserRepository, IUserService } from '../domain/user/contracts';
 
 import { AxiosApiClient } from '../infrastructure/http/axiosClient';
 import { AuthRepository } from '../infrastructure/auth/authRepository';
 import { AuthService } from '../domain/auth/authService';
 import { AuthValidator } from '../domain/auth/authValidator';
+import { UserRepository } from '../infrastructure/user/userRepository';
+import { UserService } from '../domain/user/userService';
 
 /**
  * Simple Dependency Injection Container
@@ -18,9 +21,11 @@ class DIContainer {
   private readonly _authValidator: IAuthValidator;
   private readonly _tokenManager: ITokenManager;
   private readonly _authService: IAuthService;
+  private readonly _userRepository: IUserRepository;
+  private readonly _userService: IUserService;
 
   constructor() {
-    // Create API client instance
+    // Create API client instance (singleton)
     this._apiClient = new AxiosApiClient();
 
     // Create token manager that delegates to API client
@@ -38,6 +43,12 @@ class DIContainer {
       this._authValidator,
       this._tokenManager
     );
+
+    // Create user repository with API client dependency
+    this._userRepository = new UserRepository(this._apiClient);
+
+    // Create user service with user repository dependency
+    this._userService = new UserService(this._userRepository);
   }
 
   /**
@@ -76,6 +87,20 @@ class DIContainer {
   }
 
   /**
+   * Get user repository instance
+   */
+  get userRepository(): IUserRepository {
+    return this._userRepository;
+  }
+
+  /**
+   * Get user service instance
+   */
+  get userService(): IUserService {
+    return this._userService;
+  }
+
+  /**
    * Creates a token manager that delegates to the API client
    * This ensures token synchronization between service layer and HTTP layer
    */
@@ -84,15 +109,15 @@ class DIContainer {
 
     return {
       setToken: (token: string): void => {
-        apiClient.setAuthToken(token);
+        apiClient.setToken(token);
       },
 
       getToken: (): string | null => {
-        return apiClient.getAuthToken();
+        return apiClient.getToken();
       },
 
       clearToken: (): void => {
-        apiClient.clearAuthToken();
+        apiClient.setToken(null);
       }
     };
   }
@@ -113,3 +138,5 @@ export const getAuthRepository = (): IAuthRepository => container.authRepository
 export const getAuthService = (): IAuthService => container.authService;
 export const getAuthValidator = (): IAuthValidator => container.authValidator;
 export const getTokenManager = (): ITokenManager => container.tokenManager;
+export const getUserRepository = (): IUserRepository => container.userRepository;
+export const getUserService = (): IUserService => container.userService;

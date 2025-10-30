@@ -50,6 +50,12 @@ export interface IApiClient {
    * @param token JWT token string or null to clear
    */
   setToken(token: string | null): void;
+
+  /**
+   * Get current authentication token
+   * @returns Current token or null if not set
+   */
+  getToken(): string | null;
 }
 
 /**

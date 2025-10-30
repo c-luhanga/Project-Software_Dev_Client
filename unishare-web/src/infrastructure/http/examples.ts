@@ -85,7 +85,8 @@ export class UserService {
  *   post: jest.fn(), 
  *   put: jest.fn(),
  *   delete: jest.fn(),
- *   setToken: jest.fn()
+ *   setToken: jest.fn(),
+ *   getToken: jest.fn()
  * };
  * const userService = new UserService(mockClient);
  * 
