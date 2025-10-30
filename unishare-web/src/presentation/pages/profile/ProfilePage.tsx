@@ -11,6 +11,16 @@
  */
 
 import { useEffect, useState } from 'react';
+import { 
+  Box, 
+  Container, 
+  Paper, 
+  Typography, 
+  Button, 
+  Alert,
+  Skeleton,
+  Fade
+} from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
 import {
   fetchProfileThunk,
@@ -33,7 +43,7 @@ import {
 
 /**
  * Snackbar Component for User Feedback
- * Simple notification component for success/error messages
+ * Material-UI based notification component
  */
 interface SnackbarProps {
   message: string;
@@ -42,52 +52,33 @@ interface SnackbarProps {
 }
 
 function Snackbar({ message, type, onClose }: SnackbarProps) {
-  const bgColors = {
-    success: 'bg-green-50 border-green-200 text-green-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800'
-  };
-
-  const icons = {
-    success: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-      </svg>
-    ),
-    error: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-      </svg>
-    ),
-    info: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-      </svg>
-    )
-  };
+  const severity = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
 
   return (
-    <div className={`fixed top-4 right-4 max-w-sm w-full border rounded-lg p-4 shadow-lg z-50 ${bgColors[type]}`}>
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          {icons[type]}
-        </div>
-        <div className="ml-3 flex-1">
-          <p className="text-sm font-medium">{message}</p>
-        </div>
-        <div className="ml-4 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 24,
+        right: 24,
+        zIndex: 1400,
+        maxWidth: 400,
+      }}
+    >
+      <Fade in={true}>
+        <Alert 
+          severity={severity}
+          onClose={onClose}
+          sx={{ 
+            boxShadow: 3,
+            '& .MuiAlert-action': {
+              alignItems: 'center'
+            }
+          }}
+        >
+          {message}
+        </Alert>
+      </Fade>
+    </Box>
   );
 }
 
@@ -188,111 +179,144 @@ export function ProfilePage() {
   // Loading state
   if (isLoading && !profile) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            <div className="animate-pulse">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="w-20 h-20 bg-gray-200 rounded-full"></div>
-                <div className="space-y-2">
-                  <div className="h-6 bg-gray-200 rounded w-32"></div>
-                  <div className="h-4 bg-gray-200 rounded w-48"></div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="h-4 bg-gray-200 rounded w-full"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          backgroundColor: 'background.default',
+          py: 4,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Paper elevation={2} sx={{ p: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+              <Skeleton variant="circular" width={80} height={80} sx={{ mr: 3 }} />
+              <Box sx={{ flex: 1 }}>
+                <Skeleton variant="text" sx={{ fontSize: '2rem', mb: 1 }} width="60%" />
+                <Skeleton variant="text" sx={{ fontSize: '1rem' }} width="40%" />
+              </Box>
+            </Box>
+            <Skeleton variant="rectangular" height={200} sx={{ mb: 3 }} />
+            <Skeleton variant="rectangular" height={300} />
+          </Paper>
+        </Container>
+      </Box>
     );
   }
 
   // Error state
   if (error && !profile) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="text-red-600 mb-4">
-              <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h2 className="text-xl font-semibold mb-2">Unable to load profile</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
-            </div>
-            <button
+      <Box
+        sx={{
+          minHeight: '100vh',
+          backgroundColor: 'background.default',
+          py: 4,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
+            <Alert 
+              severity="error" 
+              sx={{ mb: 3, justifyContent: 'center' }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Unable to load profile
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                {error}
+              </Typography>
+            </Alert>
+            <Button
+              variant="contained"
               onClick={handleErrorDismiss}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              color="primary"
             >
               Try Again
-            </button>
-          </div>
-        </div>
-      </div>
+            </Button>
+          </Paper>
+        </Container>
+      </Box>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <p className="text-gray-600">No profile data available</p>
-          </div>
-        </div>
-      </div>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          backgroundColor: 'background.default',
+          py: 4,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" color="text.secondary">
+              No profile data available
+            </Typography>
+          </Paper>
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
-        {/* Profile Header Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex justify-between items-start mb-6">
-            <ProfileHeader 
-              profile={profile} 
-              size="full"
-              className="flex-1"
+    <Box
+      sx={{
+        minHeight: '100vh',
+        backgroundColor: 'background.default',
+        py: 4,
+      }}
+    >
+      <Container maxWidth="lg">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Profile Header Section */}
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+              <Box sx={{ flex: 1 }}>
+                <ProfileHeader 
+                  profile={profile} 
+                  size="full"
+                />
+              </Box>
+              <Button
+                variant={isEditing ? "outlined" : "contained"}
+                color="primary"
+                onClick={() => setIsEditing(!isEditing)}
+                sx={{ ml: 2 }}
+              >
+                {isEditing ? 'Cancel' : 'Edit Profile'}
+              </Button>
+            </Box>
+
+            {/* Edit Form (when editing) */}
+            {isEditing && (
+              <Fade in={isEditing}>
+                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Edit Profile
+                  </Typography>
+                  <ProfileEditForm
+                    initial={profile}
+                    onSubmit={handleProfileUpdate}
+                    loading={isUpdating}
+                    error={error || undefined}
+                    onCancel={() => setIsEditing(false)}
+                  />
+                </Box>
+              </Fade>
+            )}
+          </Paper>
+
+          {/* My Listings Section */}
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <MyListings
+              items={items}
+              loading={isLoading}
+              onItemClick={handleItemClick}
             />
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {isEditing ? 'Cancel' : 'Edit Profile'}
-            </button>
-          </div>
-
-          {/* Edit Form (when editing) */}
-          {isEditing && (
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Edit Profile
-              </h3>
-              <ProfileEditForm
-                initial={profile}
-                onSubmit={handleProfileUpdate}
-                loading={isUpdating}
-                error={error || undefined}
-                onCancel={() => setIsEditing(false)}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* My Listings Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <MyListings
-            items={items}
-            loading={isLoading}
-            onItemClick={handleItemClick}
-          />
-        </div>
-      </div>
+          </Paper>
+        </Box>
+      </Container>
 
       {/* Snackbar for feedback */}
       {snackbar && (
@@ -302,7 +326,7 @@ export function ProfilePage() {
           onClose={handleSnackbarClose}
         />
       )}
-    </div>
+    </Box>
   );
 }
 

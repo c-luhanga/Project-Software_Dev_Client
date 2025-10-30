@@ -29,7 +29,7 @@ export const store = configureStore({
       thunk: {
         // Inject container as extra argument for Dependency Inversion
         extraArgument: {
-          container,
+          container: container,
         } as ThunkExtraArgument,
       },
       // Enable additional middleware for development

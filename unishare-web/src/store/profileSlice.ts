@@ -35,7 +35,7 @@ const initialState: ProfileState = {
  */
 interface ThunkExtra {
   container: {
-    getUserService(): IUserService;
+    userService: IUserService;
   };
 }
 
@@ -51,7 +51,7 @@ export const fetchProfileThunk = createAsyncThunk<
   'profile/fetchProfile',
   async (_, { extra, rejectWithValue }) => {
     try {
-      const userService = extra.container.getUserService();
+      const userService = extra.container.userService;
       return await userService.getProfile();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch profile';
@@ -72,7 +72,7 @@ export const updateProfileThunk = createAsyncThunk<
   'profile/updateProfile',
   async (command, { extra, rejectWithValue }) => {
     try {
-      const userService = extra.container.getUserService();
+      const userService = extra.container.userService;
       
       // Update profile
       await userService.updateProfile(command);
@@ -97,7 +97,7 @@ export const fetchMyItemsThunk = createAsyncThunk<
   'profile/fetchMyItems',
   async (_, { extra, rejectWithValue }) => {
     try {
-      const userService = extra.container.getUserService();
+      const userService = extra.container.userService;
       return await userService.getMyItems();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch your items';
