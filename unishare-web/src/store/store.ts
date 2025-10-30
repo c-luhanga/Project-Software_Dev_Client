@@ -35,8 +35,8 @@ export const store = configureStore({
       // Configure serializable check to allow Date objects in specific paths
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
-        // Allow Date objects in profile-related state paths
-        ignoredActionsPaths: ['payload.createdAt', 'payload.lastSeen', 'payload.postedDate'],
+        // Allow Date objects in profile-related actions and state paths
+        ignoredActionPaths: ['payload.createdAt', 'payload.lastSeen', 'payload.postedDate'],
         ignoredPaths: [
           'profile.profile.createdAt',
           'profile.profile.lastSeen',

@@ -13,13 +13,14 @@
 import { useEffect, useState } from 'react';
 import { 
   Box, 
-  Container, 
   Paper, 
   Typography, 
   Button, 
   Alert,
   Skeleton,
-  Fade
+  Fade,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
 import {
@@ -52,16 +53,19 @@ interface SnackbarProps {
 }
 
 function Snackbar({ message, type, onClose }: SnackbarProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const severity = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
 
   return (
     <Box
       sx={{
         position: 'fixed',
-        top: 24,
-        right: 24,
+        top: { xs: 16, sm: 24 },
+        right: { xs: 16, sm: 24 },
+        left: { xs: 16, sm: 'auto' }, // Full width on mobile
         zIndex: 1400,
-        maxWidth: 400,
+        maxWidth: { xs: 'none', sm: 400 },
       }}
     >
       <Fade in={true}>
@@ -70,8 +74,12 @@ function Snackbar({ message, type, onClose }: SnackbarProps) {
           onClose={onClose}
           sx={{ 
             boxShadow: 3,
+            fontSize: { xs: '0.875rem', sm: '1rem' },
             '& .MuiAlert-action': {
               alignItems: 'center'
+            },
+            '& .MuiAlert-message': {
+              padding: { xs: '6px 0', sm: '8px 0' }
             }
           }}
         >
@@ -90,6 +98,8 @@ function Snackbar({ message, type, onClose }: SnackbarProps) {
  */
 export function ProfilePage() {
   const dispatch = useAppDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Redux state selectors
   const profile = useAppSelector(selectProfile);
@@ -183,22 +193,68 @@ export function ProfilePage() {
         sx={{
           minHeight: '100vh',
           backgroundColor: 'background.default',
-          py: 4,
+          py: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 2, sm: 3, md: 4, lg: 6 },
+          width: '100%',
         }}
       >
-        <Container maxWidth="lg">
-          <Paper elevation={2} sx={{ p: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-              <Skeleton variant="circular" width={80} height={80} sx={{ mr: 3 }} />
-              <Box sx={{ flex: 1 }}>
-                <Skeleton variant="text" sx={{ fontSize: '2rem', mb: 1 }} width="60%" />
-                <Skeleton variant="text" sx={{ fontSize: '1rem' }} width="40%" />
+        <Box
+          sx={{
+            maxWidth: { xs: '100%', sm: '100%', md: '1200px', lg: '1400px', xl: '1600px' },
+            mx: 'auto',
+            width: '100%',
+          }}
+        >
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              p: { xs: 2, sm: 3, md: 4 },
+              borderRadius: { xs: 1, sm: 2 },
+            }}
+          >
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'center', sm: 'flex-start' },
+              gap: { xs: 2, sm: 3 },
+              mb: { xs: 3, sm: 4 } 
+            }}>
+              <Skeleton 
+                variant="circular" 
+                width={isMobile ? 60 : 80} 
+                height={isMobile ? 60 : 80} 
+              />
+              <Box sx={{ flex: 1, textAlign: { xs: 'center', sm: 'left' } }}>
+                <Skeleton 
+                  variant="text" 
+                  sx={{ 
+                    fontSize: { xs: '1.5rem', sm: '2rem' },
+                    mb: 1,
+                    width: { xs: '100%', sm: '60%' },
+                    mx: { xs: 'auto', sm: 0 }
+                  }} 
+                />
+                <Skeleton 
+                  variant="text" 
+                  sx={{ 
+                    fontSize: '1rem',
+                    width: { xs: '80%', sm: '40%' },
+                    mx: { xs: 'auto', sm: 0 }
+                  }} 
+                />
               </Box>
             </Box>
-            <Skeleton variant="rectangular" height={200} sx={{ mb: 3 }} />
-            <Skeleton variant="rectangular" height={300} />
+            <Skeleton 
+              variant="rectangular" 
+              height={isMobile ? 150 : 200} 
+              sx={{ mb: { xs: 2, sm: 3 } }} 
+            />
+            <Skeleton 
+              variant="rectangular" 
+              height={isMobile ? 200 : 300} 
+            />
           </Paper>
-        </Container>
+        </Box>
       </Box>
     );
   }
@@ -210,19 +266,52 @@ export function ProfilePage() {
         sx={{
           minHeight: '100vh',
           backgroundColor: 'background.default',
-          py: 4,
+          py: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 2, sm: 3, md: 4, lg: 6 },
+          width: '100%',
         }}
       >
-        <Container maxWidth="lg">
-          <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
+        <Box
+          sx={{
+            maxWidth: { xs: '100%', sm: '100%', md: '1200px', lg: '1400px', xl: '1600px' },
+            mx: 'auto',
+            width: '100%',
+          }}
+        >
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              p: { xs: 2, sm: 3, md: 4 }, 
+              textAlign: 'center',
+              borderRadius: { xs: 1, sm: 2 },
+            }}
+          >
             <Alert 
               severity="error" 
-              sx={{ mb: 3, justifyContent: 'center' }}
+              sx={{ 
+                mb: { xs: 2, sm: 3 }, 
+                justifyContent: 'center',
+                '& .MuiAlert-message': {
+                  width: '100%'
+                }
+              }}
             >
-              <Typography variant="h6" gutterBottom>
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{
+                  fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                }}
+              >
                 Unable to load profile
               </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 2,
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
+                }}
+              >
                 {error}
               </Typography>
             </Alert>
@@ -230,11 +319,16 @@ export function ProfilePage() {
               variant="contained"
               onClick={handleErrorDismiss}
               color="primary"
+              size={isMobile ? 'medium' : 'large'}
+              sx={{
+                minWidth: { xs: '100%', sm: 'auto' },
+                py: { xs: 1.5, sm: 1 }
+              }}
             >
               Try Again
             </Button>
           </Paper>
-        </Container>
+        </Box>
       </Box>
     );
   }
@@ -245,16 +339,24 @@ export function ProfilePage() {
         sx={{
           minHeight: '100vh',
           backgroundColor: 'background.default',
-          py: 4,
+          py: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 2, sm: 3, md: 4, lg: 6 },
+          width: '100%',
         }}
       >
-        <Container maxWidth="lg">
+        <Box
+          sx={{
+            maxWidth: { xs: '100%', sm: '100%', md: '1200px', lg: '1400px', xl: '1600px' },
+            mx: 'auto',
+            width: '100%',
+          }}
+        >
           <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
             <Typography variant="h6" color="text.secondary">
               No profile data available
             </Typography>
           </Paper>
-        </Container>
+        </Box>
       </Box>
     );
   }
@@ -264,14 +366,39 @@ export function ProfilePage() {
       sx={{
         minHeight: '100vh',
         backgroundColor: 'background.default',
-        py: 4,
+        py: { xs: 2, sm: 3, md: 4 }, // Responsive padding: smaller on mobile
+        px: { xs: 2, sm: 3, md: 4, lg: 6 },
+        width: '100%',
       }}
     >
-      <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box
+        sx={{
+          maxWidth: { xs: '100%', sm: '100%', md: '1200px', lg: '1400px', xl: '1600px' },
+          mx: 'auto',
+          width: '100%',
+        }}
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: { xs: 2, sm: 3 } // Responsive gap between sections
+        }}>
           {/* Profile Header Section */}
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              p: { xs: 2, sm: 3, md: 4 }, // Responsive padding inside cards
+              borderRadius: { xs: 1, sm: 2 }, // Slightly less rounded on mobile
+            }}
+          >
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' }, // Stack vertically on mobile
+              justifyContent: 'space-between', 
+              alignItems: { xs: 'stretch', sm: 'flex-start' }, // Full width on mobile
+              gap: { xs: 2, sm: 0 }, // Add gap on mobile
+              mb: { xs: 2, sm: 3 } 
+            }}>
               <Box sx={{ flex: 1 }}>
                 <ProfileHeader 
                   profile={profile} 
@@ -282,7 +409,12 @@ export function ProfilePage() {
                 variant={isEditing ? "outlined" : "contained"}
                 color="primary"
                 onClick={() => setIsEditing(!isEditing)}
-                sx={{ ml: 2 }}
+                sx={{ 
+                  ml: { xs: 0, sm: 2 }, // No left margin on mobile
+                  minWidth: { xs: '100%', sm: 'auto' }, // Full width on mobile
+                  mt: { xs: 1, sm: 0 }, // Add top margin on mobile
+                }}
+                size={isMobile ? 'medium' : 'large'} // Larger button on desktop
               >
                 {isEditing ? 'Cancel' : 'Edit Profile'}
               </Button>
@@ -291,8 +423,19 @@ export function ProfilePage() {
             {/* Edit Form (when editing) */}
             {isEditing && (
               <Fade in={isEditing}>
-                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 3 }}>
-                  <Typography variant="h6" gutterBottom>
+                <Box sx={{ 
+                  borderTop: 1, 
+                  borderColor: 'divider', 
+                  pt: { xs: 2, sm: 3 }, // Responsive padding top
+                  mt: { xs: 2, sm: 3 } // Responsive margin top
+                }}>
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom
+                    sx={{
+                      fontSize: { xs: '1.1rem', sm: '1.25rem' } // Responsive font size
+                    }}
+                  >
                     Edit Profile
                   </Typography>
                   <ProfileEditForm
@@ -308,7 +451,13 @@ export function ProfilePage() {
           </Paper>
 
           {/* My Listings Section */}
-          <Paper elevation={2} sx={{ p: 3 }}>
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              p: { xs: 2, sm: 3, md: 4 }, // Responsive padding
+              borderRadius: { xs: 1, sm: 2 }, // Responsive border radius
+            }}
+          >
             <MyListings
               items={items}
               loading={isLoading}
@@ -316,7 +465,7 @@ export function ProfilePage() {
             />
           </Paper>
         </Box>
-      </Container>
+      </Box>
 
       {/* Snackbar for feedback */}
       {snackbar && (

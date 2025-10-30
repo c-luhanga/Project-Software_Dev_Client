@@ -218,7 +218,11 @@ const App: React.FC = () => {
   );
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ 
+      flexGrow: 1,
+      width: '100%',
+      minHeight: '100vh'
+    }}>
       {/* App Bar - Hidden on auth pages */}
       {!isAuthPage && (
         <AppBar position="static" elevation={2}>

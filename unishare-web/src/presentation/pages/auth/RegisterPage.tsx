@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Link } from '@mui/material';
+import { Box, Typography, Link, useMediaQuery, useTheme } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
 import { 
   registerThunk,
@@ -33,6 +33,10 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { clearAuthError, canRetry } = useAuthErrorHandler();
+  
+  // Responsive design hooks
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Select auth state from Redux store
   const authStatus = useAppSelector(selectAuthStatus);
@@ -119,22 +123,34 @@ export const RegisterPage: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'background.default',
-        py: 3,
+        py: { xs: 2, sm: 3 },
+        px: { xs: 2, sm: 3, md: 4 },
       }}
     >
-      <Container maxWidth="sm">
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: { xs: '100%', sm: '480px', md: '520px', lg: '560px' },
+          mx: 'auto',
+        }}
+      >
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 4,
+            gap: { xs: 2.5, sm: 4 },
+            py: { xs: 1, sm: 0 },
           }}
         >
           {/* App Branding */}
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <Box sx={{ 
+            textAlign: 'center', 
+            mb: { xs: 1, sm: 2 },
+            px: { xs: 1, sm: 0 }
+          }}>
             <Typography
-              variant="h3"
+              variant={isMobile ? "h4" : "h3"}
               component="h1"
               sx={{
                 fontWeight: 700,
@@ -142,45 +158,69 @@ export const RegisterPage: React.FC = () => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                mb: 1,
+                mb: { xs: 0.5, sm: 1 },
+                fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                lineHeight: { xs: 1.2, sm: 1.167 },
               }}
             >
               UniShare
             </Typography>
             <Typography
-              variant="subtitle1"
+              variant={isMobile ? "body1" : "subtitle1"}
               color="text.secondary"
-              sx={{ fontSize: '1.1rem' }}
+              sx={{ 
+                fontSize: { xs: '1rem', sm: '1.1rem' },
+                lineHeight: { xs: 1.5, sm: 1.6 }
+              }}
             >
               Join our knowledge sharing community
             </Typography>
           </Box>
 
           {/* Error Display */}
-          <AuthErrorDisplay
-            error={authError || null}
-            onClose={clearAuthError}
-            onRetry={canRetry(authError || null) ? handleRetry : undefined}
-            data-testid="register-error"
-          />
+          <Box sx={{ 
+            width: '100%',
+            px: { xs: 1, sm: 0 }
+          }}>
+            <AuthErrorDisplay
+              error={authError || null}
+              onClose={clearAuthError}
+              onRetry={canRetry(authError || null) ? handleRetry : undefined}
+              data-testid="register-error"
+            />
+          </Box>
 
           {/* Registration Form - Pure presentational component */}
-          <RegisterForm
-            onSubmit={handleRegister}
-            loading={isLoading}
-            onLoginNavigation={handleLoginNavigation}
-            submitButtonText="Create UniShare Account"
-          />
+          <Box sx={{ width: '100%' }}>
+            <RegisterForm
+              onSubmit={handleRegister}
+              loading={isLoading}
+              onLoginNavigation={handleLoginNavigation}
+              submitButtonText="Create UniShare Account"
+            />
+          </Box>
 
           {/* Terms and Privacy */}
-          <Box sx={{ textAlign: 'center', maxWidth: 400 }}>
-            <Typography variant="caption" color="text.secondary">
+          <Box sx={{ 
+            textAlign: 'center', 
+            maxWidth: { xs: '100%', sm: 400 },
+            px: { xs: 1, sm: 0 }
+          }}>
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                lineHeight: { xs: 1.4, sm: 1.5 }
+              }}
+            >
               By creating an account, you agree to our{' '}
               <Link
                 href="/terms"
                 color="primary"
                 sx={{
                   textDecoration: 'none',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   '&:hover': {
                     textDecoration: 'underline',
                   },
@@ -194,6 +234,7 @@ export const RegisterPage: React.FC = () => {
                 color="primary"
                 sx={{
                   textDecoration: 'none',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   '&:hover': {
                     textDecoration: 'underline',
                   },
@@ -205,13 +246,24 @@ export const RegisterPage: React.FC = () => {
           </Box>
 
           {/* Footer */}
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Typography variant="caption" color="text.secondary">
+          <Box sx={{ 
+            textAlign: 'center', 
+            mt: { xs: 3, sm: 4 },
+            px: { xs: 1, sm: 0 }
+          }}>
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                lineHeight: { xs: 1.3, sm: 1.4 }
+              }}
+            >
               © 2025 UniShare. All rights reserved.
             </Typography>
           </Box>
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 };

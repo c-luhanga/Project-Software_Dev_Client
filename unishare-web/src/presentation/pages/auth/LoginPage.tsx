@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, Container, Typography, Link, Alert } from '@mui/material';
+import { Box, Typography, Link, Alert, useMediaQuery, useTheme } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
 import { 
   loginThunk, 
@@ -32,6 +32,8 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { clearAuthError, canRetry } = useAuthErrorHandler();
 
   // Check for registration success message
@@ -96,6 +98,13 @@ export const LoginPage: React.FC = () => {
   };
 
   /**
+   * Handle home navigation
+   */
+  const handleHomeNavigation = () => {
+    navigate('/');
+  };
+
+  /**
    * Redirect if already authenticated
    * Side effect handled in container
    */
@@ -125,22 +134,34 @@ export const LoginPage: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'background.default',
-        py: 3,
+        py: { xs: 2, sm: 3 },
+        px: { xs: 2, sm: 3, md: 4 },
       }}
     >
-      <Container maxWidth="sm">
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: { xs: '100%', sm: '480px', md: '520px', lg: '560px' },
+          mx: 'auto',
+        }}
+      >
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 4,
+            gap: { xs: 3, sm: 4 },
+            width: '100%',
           }}
         >
           {/* App Branding */}
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <Box sx={{ 
+            textAlign: 'center', 
+            mb: { xs: 1, sm: 2 },
+            px: { xs: 1, sm: 0 }
+          }}>
             <Typography
-              variant="h3"
+              variant={isMobile ? "h4" : "h3"}
               component="h1"
               sx={{
                 fontWeight: 700,
@@ -148,7 +169,8 @@ export const LoginPage: React.FC = () => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                mb: 1,
+                mb: { xs: 0.5, sm: 1 },
+                fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
               }}
             >
               UniShare
@@ -156,7 +178,10 @@ export const LoginPage: React.FC = () => {
             <Typography
               variant="subtitle1"
               color="text.secondary"
-              sx={{ fontSize: '1.1rem' }}
+              sx={{ 
+                fontSize: { xs: '1rem', sm: '1.1rem' },
+                lineHeight: { xs: 1.3, sm: 1.4 }
+              }}
             >
               Share knowledge, build community
             </Typography>
@@ -167,31 +192,50 @@ export const LoginPage: React.FC = () => {
             <Alert 
               severity="success" 
               onClose={() => setSuccessMessage(null)}
-              sx={{ width: '100%' }}
+              sx={{ 
+                width: '100%',
+                borderRadius: { xs: 1, sm: 2 },
+                fontSize: { xs: '0.875rem', sm: '1rem' }
+              }}
             >
               {successMessage}
             </Alert>
           )}
 
           {/* Error Display */}
-          <AuthErrorDisplay
-            error={authError || null}
-            onClose={clearAuthError}
-            onRetry={canRetry(authError || null) ? handleRetry : undefined}
-            data-testid="login-error"
-          />
+          <Box sx={{ width: '100%' }}>
+            <AuthErrorDisplay
+              error={authError || null}
+              onClose={clearAuthError}
+              onRetry={canRetry(authError || null) ? handleRetry : undefined}
+              data-testid="login-error"
+            />
+          </Box>
 
           {/* Login Form - Pure presentational component */}
-          <LoginForm
-            onSubmit={handleLogin}
-            loading={isLoading}
-            onForgotPassword={handleForgotPassword}
-            submitButtonText="Sign In to UniShare"
-          />
+          <Box sx={{ width: '100%' }}>
+            <LoginForm
+              onSubmit={handleLogin}
+              loading={isLoading}
+              onForgotPassword={handleForgotPassword}
+              submitButtonText="Sign In to UniShare"
+            />
+          </Box>
 
           {/* Register Link */}
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+          <Box sx={{ 
+            textAlign: 'center',
+            px: { xs: 1, sm: 0 },
+            width: '100%'
+          }}>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                lineHeight: { xs: 1.4, sm: 1.5 }
+              }}
+            >
               Don't have an account?{' '}
               <Link
                 component="button"
@@ -201,6 +245,7 @@ export const LoginPage: React.FC = () => {
                   textDecoration: 'none',
                   fontWeight: 600,
                   cursor: 'pointer',
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
                   '&:hover': {
                     textDecoration: 'underline',
                   },
@@ -209,16 +254,55 @@ export const LoginPage: React.FC = () => {
                 Create one here
               </Link>
             </Typography>
+
+            {/* Home Link */}
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ 
+                mt: { xs: 1.5, sm: 2 },
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                lineHeight: { xs: 1.4, sm: 1.5 }
+              }}
+            >
+              <Link
+                component="button"
+                variant="body2"
+                onClick={handleHomeNavigation}
+                sx={{
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                ← Back to Home
+              </Link>
+            </Typography>
           </Box>
 
           {/* Footer */}
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Typography variant="caption" color="text.secondary">
+          <Box sx={{ 
+            textAlign: 'center', 
+            mt: { xs: 3, sm: 4 },
+            px: { xs: 1, sm: 0 }
+          }}>
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                lineHeight: { xs: 1.3, sm: 1.4 }
+              }}
+            >
               © 2025 UniShare. All rights reserved.
             </Typography>
           </Box>
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 };

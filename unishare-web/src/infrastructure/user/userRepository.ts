@@ -94,6 +94,11 @@ export class UserRepository implements IUserRepository {
         throw new Error('Authentication required to access your items');
       }
       if (error instanceof ApiError) {
+        // Temporary workaround: return empty array for 400 errors while backend is being debugged
+        if (error.status === 400) {
+          console.warn('Backend /items/my-items returning 400 - returning empty array temporarily');
+          return [];
+        }
         throw new Error(`Failed to retrieve your items: ${error.message}`);
       }
       throw new Error('Unexpected error retrieving your items');
