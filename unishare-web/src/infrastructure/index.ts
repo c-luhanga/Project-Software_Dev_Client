@@ -8,3 +8,6 @@
 // HTTP Client Infrastructure
 export type { IApiClient } from './http';
 export { ApiError, AuthenticationError, AxiosApiClient, apiClient } from './http';
+
+// User Infrastructure
+export { UserRepository } from './user';
