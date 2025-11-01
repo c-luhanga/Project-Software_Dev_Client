@@ -31,16 +31,18 @@ import {
   selectProfileItems,
   selectIsProfileLoading,
   selectProfileError,
-  clearError
+  selectIsUpdating,
+  selectUpdateError,
+  clearError,
+  clearUpdateError
 } from '../../../store/profileSlice';
 import {
   ProfileHeader,
   ProfileEditForm,
-  MyListings,
-  type UpdateProfileCommand
+  MyListings
 } from '../../components/profile';
-// TODO: Add back when image upload is integrated
-// import { createImageUploader, type IImageUploader } from '../../../infrastructure/media/imageUpload';
+import type { UpdateProfileCommand } from '../../../domain/user/contracts';
+import { createImageUploader, type IImageUploader } from '../../../infrastructure/media/imageUpload';
 
 /**
  * Snackbar Component for User Feedback
@@ -104,69 +106,90 @@ export function ProfilePage() {
   const items = useAppSelector(selectProfileItems);
   const isLoading = useAppSelector(selectIsProfileLoading);
   const error = useAppSelector(selectProfileError);
+  const isUpdating = useAppSelector(selectIsUpdating);
+  const updateError = useAppSelector(selectUpdateError);
 
   // Local UI state
   const [isEditing, setIsEditing] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    phone?: string;
+    house?: string;
+    profileImageUrl?: string;
+  }>({});
   const [snackbar, setSnackbar] = useState<{
     message: string;
     type: 'success' | 'error' | 'info';
   } | null>(null);
 
-  // Image uploader instance (could be injected via DI container later)
-  // TODO: Integrate image upload functionality
-  // const imageUploader: IImageUploader = createImageUploader('mock'); // Switch to 'firebase' in production
+  // Image uploader instance - simple container pattern
+  const imageUploader: IImageUploader = createImageUploader('mock', {
+    useFakeCdn: import.meta.env.DEV // Use Vite's environment detection
+  });
 
-  // Load profile and items on mount
+  // Load profile and items on mount (SRP, DIP via thunks)
   useEffect(() => {
-    // Using any to bypass typing issues - the thunks should work at runtime
-    dispatch(fetchProfileThunk() as any);
-    dispatch(fetchMyItemsThunk() as any);
+    dispatch(fetchProfileThunk());
+    dispatch(fetchMyItemsThunk());
   }, [dispatch]);
 
-  // Handle profile update with image upload
+  // Handle image file selection and upload (DIP via IImageUploader)
+  const handlePickImage = async (file: File) => {
+    try {
+      setFieldErrors(prev => ({ ...prev, profileImageUrl: undefined }));
+      
+      // Call IImageUploader.upload(file) - resolved via simple container
+      const imageUrl = await imageUploader.upload(file);
+      
+      // Set local pendingImageUrl for merge with form data
+      setPendingImageUrl(imageUrl);
+      
+      setSnackbar({
+        message: 'Image uploaded successfully!',
+        type: 'success'
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Image upload failed';
+      setFieldErrors(prev => ({
+        ...prev,
+        profileImageUrl: errorMessage
+      }));
+      setSnackbar({
+        message: errorMessage,
+        type: 'error'
+      });
+    }
+  };
+
+  // Handle profile update - merge local edits + pendingImageUrl
   const handleProfileUpdate = async (command: UpdateProfileCommand) => {
     try {
-      setIsUpdating(true);
+      setFieldErrors({});
       
-      // Using any to bypass typing issues - the thunk should work at runtime
-      await dispatch(updateProfileThunk(command) as any).unwrap();
+      // Merge local edits + pendingImageUrl into UpdateProfileCommand
+      const mergedCommand: UpdateProfileCommand = {
+        ...command,
+        ...(pendingImageUrl && { profileImageUrl: pendingImageUrl })
+      };
       
+      // Dispatch updateProfileThunk (DIP via thunk)
+      await dispatch(updateProfileThunk(mergedCommand)).unwrap();
+      
+      // Show success feedback
       setSnackbar({
         message: 'Profile updated successfully!',
         type: 'success'
       });
       setIsEditing(false);
+      setPendingImageUrl(null); // Clear pending image
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
       setSnackbar({
         message: errorMessage,
         type: 'error'
       });
-    } finally {
-      setIsUpdating(false);
     }
   };
-
-  // Handle image file selection and upload
-  // TODO: Integrate with ProfileEditForm for image upload
-  // const handleImageUpload = async (file: File): Promise<string> => {
-  //   try {
-  //     const imageUrl = await imageUploader.upload(file);
-  //     setSnackbar({
-  //       message: 'Image uploaded successfully!',
-  //       type: 'success'
-  //     });
-  //     return imageUrl;
-  //   } catch (err) {
-  //     const errorMessage = err instanceof Error ? err.message : 'Image upload failed';
-  //     setSnackbar({
-  //       message: errorMessage,
-  //       type: 'error'
-  //     });
-  //     throw err;
-  //   }
-  // };
 
   // Handle item click navigation
   const handleItemClick = (item: any) => {
@@ -177,6 +200,7 @@ export function ProfilePage() {
   // Handle error dismissal
   const handleErrorDismiss = () => {
     dispatch(clearError());
+    dispatch(clearUpdateError());
   };
 
   // Handle snackbar close
@@ -439,9 +463,15 @@ export function ProfilePage() {
                   <ProfileEditForm
                     initial={profile}
                     onSubmit={handleProfileUpdate}
+                    onPickImage={handlePickImage}
                     loading={isUpdating}
-                    error={error || undefined}
-                    onCancel={() => setIsEditing(false)}
+                    error={updateError || undefined}
+                    errors={fieldErrors}
+                    onCancel={() => {
+                      setIsEditing(false);
+                      setPendingImageUrl(null);
+                      setFieldErrors({});
+                    }}
                   />
                 </Box>
               </Fade>
@@ -487,44 +517,53 @@ export function ProfilePage() {
  * 
  * 2. Dependency Inversion Principle (DIP):
  *    - Uses Redux thunks which receive services via dependency injection
- *    - No direct imports or calls to repositories/services
- *    - Services injected through thunk extra argument pattern
+ *    - No direct imports or calls to repositories/services in thunks
+ *    - Image uploader resolved via simple container pattern
+ *    - All service access through thunks (SRP, DIP via thunks)
  * 
- * 3. Redux Integration:
- *    - Dispatches thunks on mount for data loading
- *    - Uses selectors for type-safe state access
- *    - Handles async operations through Redux toolkit
+ * 3. Enhanced Container Wiring:
+ *    - On mount: dispatches fetchProfileThunk and fetchMyItemsThunk
+ *    - onPickImage(file): calls IImageUploader.upload(file), sets pendingImageUrl
+ *    - On Save: merges local edits + pendingImageUrl, dispatches updateProfileThunk
+ *    - Success/Error: shows Snackbar feedback with proper state management
  * 
- * 4. Image Upload Integration:
+ * 4. Image Upload Integration (DIP):
  *    - Uses IImageUploader abstraction for file uploads
- *    - Can be easily swapped between implementations
- *    - Handles upload errors gracefully
+ *    - Resolved via simple container/factory pattern
+ *    - Can be easily swapped between mock/Firebase implementations
+ *    - Handles upload errors with field-level feedback
  * 
  * 5. User Experience:
- *    - Loading states for async operations
- *    - Error handling with user feedback
+ *    - Loading states from Redux for async operations
+ *    - Field-level error handling with granular feedback
  *    - Success notifications via snackbar
- *    - Optimistic UI updates
+ *    - Proper state cleanup on cancel operations
  * 
  * 6. Testability:
  *    - Easy to mock Redux store for testing
  *    - Clear props interface for components
  *    - Predictable state management flow
+ *    - Image uploader can be mocked via DI
  * 
- * Data Flow:
+ * Data Flow (SRP, DIP via Thunks):
  * 
  * 1. Mount → dispatch fetchProfileThunk + fetchMyItemsThunk
  * 2. Thunks → get services from DI container → call business logic
  * 3. Results → update Redux state → trigger re-render
- * 4. User edits → ProfileEditForm → onSubmit callback
- * 5. Image upload → IImageUploader → get URL → include in command
- * 6. Submit → dispatch updateProfileThunk → update state
- * 7. Success/Error → show snackbar feedback
+ * 4. User picks image → onPickImage → IImageUploader.upload → pendingImageUrl
+ * 5. User edits form → ProfileEditForm → local state changes
+ * 6. Submit → merge edits + pendingImageUrl → dispatch updateProfileThunk
+ * 7. Success/Error → show snackbar feedback → cleanup state
+ * 
+ * Service Access Pattern:
+ * - ✅ All service access through Redux thunks (maintains DIP)
+ * - ✅ No direct repository imports in container
+ * - ✅ Image uploader resolved via simple container pattern
+ * - ✅ Clean separation between infrastructure and presentation
  * 
  * Future Enhancements:
- * 
  * - Add image upload thunk for better separation
  * - Implement optimistic updates for better UX
- * - Add form validation integration
  * - Support for real-time updates via websockets
+ * - Enhanced validation integration with domain layer
  */
