@@ -2,6 +2,7 @@ import type { IApiClient } from '../infrastructure/http/IApiClient';
 import type { IAuthRepository } from '../infrastructure/auth/IAuthRepository';
 import type { IAuthService, IAuthValidator, ITokenManager } from '../domain/auth/IAuthService';
 import type { IUserRepository, IUserService } from '../domain/user/contracts';
+import type { IItemsRepository, IItemsService } from '../domain/items/contracts';
 
 import { AxiosApiClient } from '../infrastructure/http/axiosClient';
 import { AuthRepository } from '../infrastructure/auth/authRepository';
@@ -9,6 +10,8 @@ import { AuthService } from '../domain/auth/authService';
 import { AuthValidator } from '../domain/auth/authValidator';
 import { UserRepository } from '../infrastructure/user/userRepository';
 import { UserService } from '../domain/user/userService';
+import { ItemsRepository } from '../infrastructure/items/itemsRepository';
+import { ItemsService } from '../domain/items/itemsService';
 import * as tokenStorage from '../utils/tokenStorage';
 
 /**
@@ -24,6 +27,8 @@ class DIContainer {
   private readonly _authService: IAuthService;
   private readonly _userRepository: IUserRepository;
   private readonly _userService: IUserService;
+  private readonly _itemsRepository: IItemsRepository;
+  private readonly _itemsService: IItemsService;
 
   constructor() {
     // Create token storage adapter for API client
@@ -57,6 +62,12 @@ class DIContainer {
 
     // Create user service with user repository dependency
     this._userService = new UserService(this._userRepository);
+
+    // Create items repository with API client dependency
+    this._itemsRepository = new ItemsRepository(this._apiClient);
+
+    // Create items service with items repository dependency
+    this._itemsService = new ItemsService(this._itemsRepository);
   }
 
   /**
@@ -109,6 +120,20 @@ class DIContainer {
   }
 
   /**
+   * Get items repository instance
+   */
+  get itemsRepository(): IItemsRepository {
+    return this._itemsRepository;
+  }
+
+  /**
+   * Get items service instance
+   */
+  get itemsService(): IItemsService {
+    return this._itemsService;
+  }
+
+  /**
    * Creates a token manager that delegates to the API client
    * This ensures token synchronization between service layer and HTTP layer
    */
@@ -148,3 +173,5 @@ export const getAuthValidator = (): IAuthValidator => container.authValidator;
 export const getTokenManager = (): ITokenManager => container.tokenManager;
 export const getUserRepository = (): IUserRepository => container.userRepository;
 export const getUserService = (): IUserService => container.userService;
+export const getItemsRepository = (): IItemsRepository => container.itemsRepository;
+export const getItemsService = (): IItemsService => container.itemsService;
