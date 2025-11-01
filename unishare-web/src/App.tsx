@@ -5,12 +5,7 @@ import {
   Typography,
   Button,
   Box,
-  Avatar,
-  Menu,
-  MenuItem,
-  IconButton,
 } from '@mui/material';
-import { AccountCircle } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from './hooks/redux';
 import { 
@@ -24,14 +19,16 @@ import { AppRouter } from './presentation/routes';
  * App shell component following Single Responsibility Principle
  * 
  * Responsibilities:
- * - Render top-level app structure with AppBar
- * - Display auth-aware navigation and user controls
- * - Handle UI interactions for login/logout navigation
+ * - Render top-level app structure with simplified AppBar
+ * - Display auth-aware navigation: "Login/Register" or "UserName + Logout"
+ * - Handle UI interactions for navigation (no direct HTTP calls)
+ * - Dispatch logout thunk and navigate on logout
  * 
  * Does NOT:
- * - Perform HTTP requests directly
+ * - Perform HTTP requests directly (delegated to Redux thunks)
  * - Implement business rules or validation
  * - Handle complex state management beyond UI state
+ * - Manage authentication logic (delegated to auth slice)
  */
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -42,26 +39,8 @@ const App: React.FC = () => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectAuthUser);
 
-  // Local UI state for user menu
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const isMenuOpen = Boolean(anchorEl);
-
   // Check if we're on an auth page to hide AppBar
   const isAuthPage = location.pathname.startsWith('/auth');
-
-  /**
-   * Handle user menu open
-   */
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  /**
-   * Handle user menu close
-   */
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
 
   /**
    * Handle navigation to login page
@@ -78,20 +57,12 @@ const App: React.FC = () => {
   };
 
   /**
-   * Handle user logout - dispatches Redux action only
+   * Handle user logout - dispatches Redux thunk only (SRP compliance)
+   * Thunk handles: token clearing, storage cleanup, HTTP client cleanup
    */
   const handleLogout = async () => {
-    handleMenuClose();
     await dispatch(logoutThunk());
     navigate('/auth/login');
-  };
-
-  /**
-   * Handle profile navigation
-   */
-  const handleProfile = () => {
-    handleMenuClose();
-    navigate('/profile');
   };
 
   /**
@@ -102,90 +73,46 @@ const App: React.FC = () => {
   };
 
   /**
-   * Render authenticated user menu
+   * Render authenticated user section - simplified UX
+   * Shows user display name and logout button only
    */
-  const renderUserMenu = () => (
-    <Menu
-      anchorEl={anchorEl}
-      open={isMenuOpen}
-      onClose={handleMenuClose}
-      onClick={handleMenuClose}
-      transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      PaperProps={{
-        elevation: 3,
-        sx: {
-          mt: 1.5,
-          minWidth: 180,
-          '& .MuiMenuItem-root': {
-            px: 2,
-            py: 1,
-          },
-        },
-      }}
-    >
-      <MenuItem onClick={handleProfile}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountCircle fontSize="small" />
-          Profile
-        </Box>
-      </MenuItem>
-      <MenuItem onClick={handleLogout}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography>Logout</Typography>
-        </Box>
-      </MenuItem>
-    </Menu>
-  );
+  const renderAuthenticatedUser = () => {
+    // Create display name from user data
+    const displayName = user?.firstName && user?.lastName 
+      ? `${user.firstName} ${user.lastName}`
+      : user?.firstName || user?.email || 'User';
 
-  /**
-   * Render authenticated user section
-   */
-  const renderAuthenticatedUser = () => (
-    <>
+    return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {/* Profile Link */}
-        <Button
-          color="inherit"
-          onClick={handleProfile}
-          sx={{
-            textTransform: 'none',
-            display: { xs: 'none', md: 'block' },
+        {/* User Display Name */}
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            fontWeight: 500,
+            display: { xs: 'none', sm: 'block' } 
           }}
         >
-          Profile
-        </Button>
-        
-        {/* User Info */}
-        <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-          Welcome, {user?.firstName}
+          {displayName}
         </Typography>
         
-        {/* User Avatar Menu */}
-        <IconButton
-          size="large"
-          aria-label="account menu"
-          aria-controls="user-menu"
-          aria-haspopup="true"
-          onClick={handleMenuOpen}
+        {/* Logout Button */}
+        <Button
           color="inherit"
+          onClick={handleLogout}
+          sx={{
+            textTransform: 'none',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              borderColor: 'rgba(255, 255, 255, 0.5)',
+            },
+          }}
         >
-          {user?.profileImageUrl ? (
-            <Avatar
-              src={user.profileImageUrl}
-              alt={`${user.firstName} ${user.lastName}`}
-              sx={{ width: 32, height: 32 }}
-            />
-          ) : (
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-              {user?.firstName?.charAt(0) || 'U'}
-            </Avatar>
-          )}
-        </IconButton>
+          Logout
+        </Button>
       </Box>
-      {renderUserMenu()}
-    </>
-  );
+    );
+  };
 
   /**
    * Render unauthenticated user section
