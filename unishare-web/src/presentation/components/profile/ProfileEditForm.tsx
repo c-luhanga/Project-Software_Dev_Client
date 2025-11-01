@@ -18,12 +18,20 @@ import type { UserProfile, UpdateProfileCommand } from '../../../domain/user/con
 interface ProfileEditFormProps {
   /** Initial form values */
   initial: Partial<UserProfile>;
-  /** Form submission handler */
+  /** Form submission handler - only receives defined values */
   onSubmit: (command: UpdateProfileCommand) => void;
   /** Loading state for submit button */
   loading: boolean;
-  /** Error message to display */
+  /** Global error message to display */
   error?: string;
+  /** Field-level validation errors */
+  errors?: {
+    phone?: string;
+    house?: string;
+    profileImageUrl?: string;
+  };
+  /** Image picker callback - receives File object */
+  onPickImage?: (file: File) => void;
   /** Optional cancel handler */
   onCancel?: () => void;
   /** Custom form className */
@@ -32,11 +40,11 @@ interface ProfileEditFormProps {
 
 /**
  * Form data interface for internal state management
+ * Only tracks phone and house - image handled via callback
  */
 interface FormData {
   phone: string;
   house: string;
-  profileImageUrl: string;
 }
 
 /**
@@ -48,25 +56,28 @@ export function ProfileEditForm({
   onSubmit,
   loading,
   error,
+  errors,
+  onPickImage,
   onCancel,
   className = ''
 }: ProfileEditFormProps) {
-  // Local form state
+  // Local form state - only phone and house
   const [formData, setFormData] = useState<FormData>({
     phone: initial.phone || '',
-    house: initial.house || '',
-    profileImageUrl: initial.profileImageUrl || ''
+    house: initial.house || ''
   });
 
   const [touchedFields, setTouchedFields] = useState<Set<keyof FormData>>(new Set());
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>(initial.profileImageUrl || '');
 
   // Update form data when initial values change
   useEffect(() => {
     setFormData({
       phone: initial.phone || '',
-      house: initial.house || '',
-      profileImageUrl: initial.profileImageUrl || ''
+      house: initial.house || ''
     });
+    setImagePreviewUrl(initial.profileImageUrl || '');
   }, [initial]);
 
   // Handle input changes
@@ -81,10 +92,21 @@ export function ProfileEditForm({
   // Handle image file selection
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Create preview URL
+    if (file && onPickImage) {
+      // Call the provided callback with the file
+      onPickImage(file);
+      
+      // Update local preview
+      setSelectedImage(file);
       const previewUrl = URL.createObjectURL(file);
-      handleInputChange('profileImageUrl', previewUrl);
+      setImagePreviewUrl(previewUrl);
+      
+      // Clean up previous preview URL
+      return () => {
+        if (imagePreviewUrl && imagePreviewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(imagePreviewUrl);
+        }
+      };
     }
   };
 
@@ -92,29 +114,30 @@ export function ProfileEditForm({
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     
-    // Create update command with only changed, non-empty fields
-    const command: UpdateProfileCommand = {};
-    
-    if (touchedFields.has('phone')) {
-      const phone = formData.phone.trim() || undefined;
-      Object.assign(command, { phone });
-    }
-    
-    if (touchedFields.has('house')) {
-      const house = formData.house.trim() || undefined;
-      Object.assign(command, { house });
-    }
-    
-    if (touchedFields.has('profileImageUrl')) {
-      const profileImageUrl = formData.profileImageUrl || undefined;
-      Object.assign(command, { profileImageUrl });
-    }
+    // Build command object using object spread with conditional properties
+    // This avoids assignment to readonly properties by constructing the object directly
+    const command: UpdateProfileCommand = {
+      // Only include phone if touched and has value
+      ...(touchedFields.has('phone') && formData.phone.trim() && {
+        phone: formData.phone.trim()
+      }),
+      
+      // Only include house if touched and has value
+      ...(touchedFields.has('house') && formData.house.trim() && {
+        house: formData.house.trim()
+      }),
+      
+      // Include profileImageUrl if image was selected
+      ...(selectedImage && {
+        profileImageUrl: imagePreviewUrl
+      })
+    };
 
     onSubmit(command);
   };
 
   // Check if form has changes
-  const hasChanges = touchedFields.size > 0;
+  const hasChanges = touchedFields.size > 0 || selectedImage !== null;
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-6 ${className}`}>
@@ -127,9 +150,9 @@ export function ProfileEditForm({
         <div className="flex items-center space-x-4">
           {/* Image Preview */}
           <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-            {formData.profileImageUrl ? (
+            {imagePreviewUrl ? (
               <img
-                src={formData.profileImageUrl}
+                src={imagePreviewUrl}
                 alt="Profile preview"
                 className="w-full h-full object-cover"
               />
@@ -148,16 +171,21 @@ export function ProfileEditForm({
               type="file"
               accept="image/jpeg,image/png,image/webp"
               onChange={handleImageChange}
+              disabled={loading}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-md file:border-0
                 file:text-sm file:font-medium
                 file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
+                hover:file:bg-blue-100
+                disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <p className="mt-1 text-xs text-gray-500">
               JPEG, PNG, or WebP. Max 5MB.
             </p>
+            {errors?.profileImageUrl && (
+              <p className="mt-1 text-xs text-red-600">{errors.profileImageUrl}</p>
+            )}
           </div>
         </div>
       </div>
@@ -178,6 +206,9 @@ export function ProfileEditForm({
             disabled:bg-gray-50 disabled:text-gray-500"
           disabled={loading}
         />
+        {errors?.phone && (
+          <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+        )}
       </div>
 
       {/* House Field */}
@@ -196,6 +227,9 @@ export function ProfileEditForm({
             disabled:bg-gray-50 disabled:text-gray-500"
           disabled={loading}
         />
+        {errors?.house && (
+          <p className="mt-1 text-sm text-red-600">{errors.house}</p>
+        )}
       </div>
 
       {/* Read-only Email Field */}
@@ -274,36 +308,47 @@ export function ProfileEditForm({
  * 1. Single Responsibility Principle (SRP):
  *    - Only responsible for form UI and local form state
  *    - No business logic, API calls, or global state access
- *    - Delegates all actions to parent components
+ *    - Delegates all actions to parent components via callbacks
  * 
  * 2. Interface Segregation Principle (ISP):
  *    - Clean props interface with only required data
- *    - Optional props for customization
+ *    - Optional props for customization and error handling
  *    - No forced dependencies on Redux or other services
  * 
- * 3. Controlled Component:
- *    - All form state managed locally
- *    - Predictable data flow
- *    - Easy to test and validate
+ * 3. Enhanced UX Features:
+ *    - Local state management for phone and house fields
+ *    - Avatar picker with onPickImage callback for file handling
+ *    - Disabled state during loading operations
+ *    - Field-level helper text from errors prop
+ *    - Submit only sends defined values (no undefined/empty fields)
  * 
- * 4. Accessibility:
+ * 4. Controlled Component:
+ *    - All form state managed locally with React hooks
+ *    - Predictable data flow and state updates
+ *    - Easy to test and validate behavior
+ * 
+ * 5. Accessibility:
  *    - Proper form labels and associations
  *    - Keyboard navigation support
- *    - Screen reader friendly
+ *    - Screen reader friendly error messages
+ *    - Disabled states properly communicated
  * 
- * 5. User Experience:
- *    - Shows only changed fields in update command
- *    - Visual feedback for loading states
- *    - Clear error messaging
- *    - Image preview functionality
+ * 6. User Experience:
+ *    - Shows only changed fields with actual values in update command
+ *    - Visual feedback for loading states across all inputs
+ *    - Clear field-level error messaging
+ *    - Image preview functionality with file selection
+ *    - Prevents submission when loading or no changes made
  * 
  * Usage Example:
  * 
  * <ProfileEditForm
  *   initial={userProfile}
  *   onSubmit={handleProfileUpdate}
+ *   onPickImage={handleImageSelection}
  *   loading={isUpdating}
- *   error={updateError}
+ *   error={globalError}
+ *   errors={fieldErrors}
  *   onCancel={handleCancel}
  * />
  */
