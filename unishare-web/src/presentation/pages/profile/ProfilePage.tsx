@@ -33,6 +33,8 @@ import {
   selectProfileError,
   selectIsUpdating,
   selectUpdateError,
+  selectLastUpdatedAt,
+  selectUpdateSucceeded,
   clearError,
   clearUpdateError
 } from '../../../store/profileSlice';
@@ -45,17 +47,38 @@ import type { UpdateProfileCommand } from '../../../domain/user/contracts';
 import { createImageUploader, type IImageUploader } from '../../../infrastructure/media/imageUpload';
 
 /**
- * Snackbar Component for User Feedback
- * Material-UI based notification component
+ * Enhanced Snackbar Component for User Feedback (SRP, UX)
+ * Material-UI based notification component with accessibility features
  */
 interface SnackbarProps {
   message: string;
   type: 'success' | 'error' | 'info';
+  open: boolean;
   onClose: () => void;
+  autoHideDuration?: number;
 }
 
-function Snackbar({ message, type, onClose }: SnackbarProps) {
+function AccessibleSnackbar({ 
+  message, 
+  type, 
+  open, 
+  onClose, 
+  autoHideDuration = 6000 
+}: SnackbarProps) {
   const severity = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+
+  // Auto-hide functionality
+  useEffect(() => {
+    if (open && autoHideDuration > 0) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, autoHideDuration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [open, autoHideDuration, onClose]);
+
+  if (!open) return null;
 
   return (
     <Box
@@ -67,8 +90,11 @@ function Snackbar({ message, type, onClose }: SnackbarProps) {
         zIndex: 1400,
         maxWidth: { xs: 'none', sm: 400 },
       }}
+      role="status"
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
+      aria-atomic="true"
     >
-      <Fade in={true}>
+      <Fade in={open}>
         <Alert 
           severity={severity}
           onClose={onClose}
@@ -82,8 +108,9 @@ function Snackbar({ message, type, onClose }: SnackbarProps) {
               padding: { xs: '6px 0', sm: '8px 0' }
             }
           }}
+          aria-describedby="snackbar-message"
         >
-          {message}
+          <span id="snackbar-message">{message}</span>
         </Alert>
       </Fade>
     </Box>
@@ -108,6 +135,8 @@ export function ProfilePage() {
   const error = useAppSelector(selectProfileError);
   const isUpdating = useAppSelector(selectIsUpdating);
   const updateError = useAppSelector(selectUpdateError);
+  const lastUpdatedAt = useAppSelector(selectLastUpdatedAt);
+  const updateSucceeded = useAppSelector(selectUpdateSucceeded);
 
   // Local UI state
   const [isEditing, setIsEditing] = useState(false);
@@ -120,7 +149,11 @@ export function ProfilePage() {
   const [snackbar, setSnackbar] = useState<{
     message: string;
     type: 'success' | 'error' | 'info';
-  } | null>(null);
+    open: boolean;
+  }>({ message: '', type: 'info', open: false });
+
+  // Track last update time for success notifications
+  const [prevLastUpdatedAt, setPrevLastUpdatedAt] = useState<number | undefined>(lastUpdatedAt);
 
   // Image uploader instance - simple container pattern
   const imageUploader: IImageUploader = createImageUploader('mock', {
@@ -132,6 +165,34 @@ export function ProfilePage() {
     dispatch(fetchProfileThunk());
     dispatch(fetchMyItemsThunk());
   }, [dispatch]);
+
+  // Watch for successful profile updates (UX: Success notifications)
+  useEffect(() => {
+    // Show success notification when lastUpdatedAt changes (profile update succeeded)
+    if (lastUpdatedAt && lastUpdatedAt !== prevLastUpdatedAt && updateSucceeded) {
+      setSnackbar({
+        message: 'Profile updated successfully!',
+        type: 'success',
+        open: true
+      });
+      setIsEditing(false);
+      setPendingImageUrl(null);
+      setFieldErrors({});
+      setPrevLastUpdatedAt(lastUpdatedAt);
+    }
+  }, [lastUpdatedAt, prevLastUpdatedAt, updateSucceeded]);
+
+  // Watch for update errors (UX: Error notifications)
+  useEffect(() => {
+    // Show error notification when update fails
+    if (updateError) {
+      setSnackbar({
+        message: updateError,
+        type: 'error',
+        open: true
+      });
+    }
+  }, [updateError]);
 
   // Handle image file selection and upload (DIP via IImageUploader)
   const handlePickImage = async (file: File) => {
@@ -146,7 +207,8 @@ export function ProfilePage() {
       
       setSnackbar({
         message: 'Image uploaded successfully!',
-        type: 'success'
+        type: 'success',
+        open: true
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Image upload failed';
@@ -156,7 +218,8 @@ export function ProfilePage() {
       }));
       setSnackbar({
         message: errorMessage,
-        type: 'error'
+        type: 'error',
+        open: true
       });
     }
   };
@@ -173,21 +236,14 @@ export function ProfilePage() {
       };
       
       // Dispatch updateProfileThunk (DIP via thunk)
+      // Success/Error notifications are handled by Redux state watchers
       await dispatch(updateProfileThunk(mergedCommand)).unwrap();
       
-      // Show success feedback
-      setSnackbar({
-        message: 'Profile updated successfully!',
-        type: 'success'
-      });
-      setIsEditing(false);
-      setPendingImageUrl(null); // Clear pending image
+      // No manual success notification - handled by useEffect watching lastUpdatedAt
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
-      setSnackbar({
-        message: errorMessage,
-        type: 'error'
-      });
+      // Error notification is handled by useEffect watching updateError
+      // This catch is mainly for unwrap() promise rejection handling
+      console.error('Profile update failed:', err);
     }
   };
 
@@ -205,7 +261,11 @@ export function ProfilePage() {
 
   // Handle snackbar close
   const handleSnackbarClose = () => {
-    setSnackbar(null);
+    setSnackbar(prev => ({ ...prev, open: false }));
+    // Clear update error when snackbar is closed
+    if (updateError) {
+      dispatch(clearUpdateError());
+    }
   };
 
   // Loading state
@@ -495,14 +555,14 @@ export function ProfilePage() {
         </Box>
       </Box>
 
-      {/* Snackbar for feedback */}
-      {snackbar && (
-        <Snackbar
-          message={snackbar.message}
-          type={snackbar.type}
-          onClose={handleSnackbarClose}
-        />
-      )}
+      {/* Enhanced Snackbar for feedback */}
+      <AccessibleSnackbar
+        message={snackbar.message}
+        type={snackbar.type}
+        open={snackbar.open}
+        onClose={handleSnackbarClose}
+        autoHideDuration={snackbar.type === 'error' ? 8000 : 6000} // Longer for errors
+      />
     </Box>
   );
 }
@@ -533,11 +593,12 @@ export function ProfilePage() {
  *    - Can be easily swapped between mock/Firebase implementations
  *    - Handles upload errors with field-level feedback
  * 
- * 5. User Experience:
- *    - Loading states from Redux for async operations
- *    - Field-level error handling with granular feedback
- *    - Success notifications via snackbar
- *    - Proper state cleanup on cancel operations
+ * 5. Enhanced User Experience (UX):
+ *    - Redux state-driven notifications (success when lastUpdatedAt changes)
+ *    - Error notifications from Redux updateError state
+ *    - Auto-hiding Snackbars with accessibility features (aria-live, aria-atomic)
+ *    - Longer duration for error messages (8s vs 6s for success)
+ *    - Proper state cleanup on success operations
  * 
  * 6. Testability:
  *    - Easy to mock Redux store for testing
@@ -545,7 +606,29 @@ export function ProfilePage() {
  *    - Predictable state management flow
  *    - Image uploader can be mocked via DI
  * 
- * Data Flow (SRP, DIP via Thunks):
+ * Enhanced Notification System (UX, SRP):
+ * 
+ * 1. Success Notifications:
+ *    - Triggered by Redux state change (lastUpdatedAt + updateSucceeded)
+ *    - Shows "Profile updated successfully" when updateProfileThunk fulfilled
+ *    - Automatically closes edit form and cleans up pending state
+ * 
+ * 2. Error Notifications:
+ *    - Triggered by Redux updateError state changes
+ *    - Uses slice error for consistent error messaging
+ *    - Longer auto-hide duration for better readability
+ * 
+ * 3. Accessibility Features:
+ *    - aria-live="assertive" for errors, "polite" for success
+ *    - aria-atomic="true" for complete message reading
+ *    - aria-describedby for screen reader association
+ *    - Proper role="status" for notifications
+ * 
+ * 4. Auto-Hide Behavior:
+ *    - 6 seconds for success messages
+ *    - 8 seconds for error messages (more time to read)
+ *    - Manual close available via close button
+ *    - Automatic cleanup of Redux error state on close
  * 
  * 1. Mount → dispatch fetchProfileThunk + fetchMyItemsThunk
  * 2. Thunks → get services from DI container → call business logic
