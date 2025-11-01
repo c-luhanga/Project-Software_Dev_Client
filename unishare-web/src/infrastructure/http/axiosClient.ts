@@ -3,7 +3,7 @@
  * 
  * Concrete implementation following Single Responsibility Principle:
  * - Handles HTTP requests via Axios
- * - Manages authentication token internally
+ * - Integrates with token storage via dependency injection
  * - Normalizes 401 errors to AuthenticationError
  * - Provides consistent error handling
  */
@@ -13,14 +13,26 @@ import type { IApiClient } from './IApiClient';
 import { ApiError, AuthenticationError } from './IApiClient';
 
 /**
+ * Token storage interface for dependency injection (DIP)
+ * Allows testing and different storage implementations
+ */
+interface ITokenStorage {
+  getToken(): string | null;
+  setToken(token: string | null): void;
+  clearToken(): void;
+}
+
+/**
  * Axios-based implementation of IApiClient interface
- * Follows SRP by focusing solely on HTTP communication via Axios
+ * Follows SRP and DIP by depending on abstractions, not concrete token storage
  */
 export class AxiosApiClient implements IApiClient {
   private readonly axiosInstance: AxiosInstance;
-  private authToken: string | null = null;
+  private readonly tokenStorage: ITokenStorage;
 
-  constructor() {
+  constructor(tokenStorage: ITokenStorage) {
+    this.tokenStorage = tokenStorage;
+
     // Initialize Axios instance with base configuration
     this.axiosInstance = axios.create({
       baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5100/api',
@@ -30,11 +42,15 @@ export class AxiosApiClient implements IApiClient {
       },
     });
 
+    // Set initial auth header if token exists
+    this.initializeAuthHeader();
+
     // Request interceptor to add authentication header
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        if (this.authToken) {
-          config.headers.Authorization = `Bearer ${this.authToken}`;
+        const token = this.tokenStorage.getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
       },
@@ -49,6 +65,17 @@ export class AxiosApiClient implements IApiClient {
         return Promise.reject(apiError);
       }
     );
+  }
+
+  /**
+   * Initialize authorization header from token storage
+   * Called during construction to sync with persisted token
+   */
+  private initializeAuthHeader(): void {
+    const token = this.tokenStorage.getToken();
+    if (token) {
+      this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
   }
 
   /**
@@ -101,23 +128,42 @@ export class AxiosApiClient implements IApiClient {
 
   /**
    * Set authentication token for subsequent requests
+   * Updates both Axios defaults and persistent storage via DIP
    * @param token JWT token string or null to clear
    */
-  setToken(token: string | null): void {
-    this.authToken = token;
+  setAuthToken(token: string | null): void {
+    // Update persistent storage via injected dependency
+    this.tokenStorage.setToken(token);
+    
+    // Update Axios default headers
+    if (token) {
+      this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete this.axiosInstance.defaults.headers.common['Authorization'];
+    }
   }
 
   /**
-   * Get current authentication token
+   * Set authentication token for subsequent requests
+   * @deprecated Use setAuthToken instead for DIP compliance
+   * @param token JWT token string or null to clear
+   */
+  setToken(token: string | null): void {
+    this.setAuthToken(token);
+  }
+
+  /**
+   * Get current authentication token from storage
    * @returns Current token or null if not set
    */
   getToken(): string | null {
-    return this.authToken;
+    return this.tokenStorage.getToken();
   }
 
   /**
    * Normalize Axios errors to consistent ApiError format
    * Special handling for 401 status codes (AuthenticationError)
+   * Ensures consistent error shape across the application
    */
   private normalizeError(error: AxiosError): ApiError | AuthenticationError {
     const status = error.response?.status ?? 0;
@@ -125,9 +171,15 @@ export class AxiosApiClient implements IApiClient {
     const url = error.config?.url ?? 'unknown';
     const data = error.response?.data;
 
-    // Normalize 401 errors to AuthenticationError
+    // Normalize all 401 errors to standard AuthenticationError shape
     if (status === 401) {
-      return new AuthenticationError(url, data);
+      const authError = new AuthenticationError(url, data);
+      
+      // Clear token on 401 to prevent retry loops
+      this.tokenStorage.clearToken();
+      delete this.axiosInstance.defaults.headers.common['Authorization'];
+      
+      return authError;
     }
 
     // Create generic ApiError for other HTTP errors
@@ -192,6 +244,58 @@ export class AxiosApiClient implements IApiClient {
 
 /**
  * Default instance for application use
- * Singleton pattern for consistent client across the app
+ * Singleton pattern with injected token storage dependency
+ * Uses concrete token storage implementation while maintaining DIP
  */
-export const apiClient = new AxiosApiClient();
+import * as tokenStorage from '../../utils/tokenStorage';
+
+// Create token storage adapter that conforms to ITokenStorage interface
+const tokenStorageAdapter: ITokenStorage = {
+  getToken: tokenStorage.getToken,
+  setToken: tokenStorage.setToken,
+  clearToken: tokenStorage.clearToken,
+};
+
+export const apiClient = new AxiosApiClient(tokenStorageAdapter);
+
+/*
+ * Enhanced Architecture Benefits with DIP Integration:
+ * 
+ * 1. Dependency Inversion Principle (DIP):
+ *    - Depends on ITokenStorage abstraction, not concrete implementation
+ *    - Allows easy testing with mock token storage
+ *    - Enables different storage strategies without code changes
+ * 
+ * 2. Single Responsibility Principle (SRP):
+ *    - HTTP client only handles HTTP communication
+ *    - Token storage handles persistence concerns
+ *    - Clear separation of concerns
+ * 
+ * 3. Automatic Token Management:
+ *    - Initializes auth headers from persistent storage
+ *    - Updates both Axios defaults and storage atomically
+ *    - Auto-clears tokens on 401 responses
+ * 
+ * 4. Framework Agnostic:
+ *    - No React, Redux, or UI framework dependencies
+ *    - Pure infrastructure layer component
+ *    - Can be used in any JavaScript environment
+ * 
+ * 5. Consistent Error Handling:
+ *    - Normalizes 401 responses to AuthenticationError
+ *    - Maintains consistent error shapes
+ *    - Automatic token cleanup on authentication failures
+ * 
+ * Usage:
+ * 
+ * // Tokens are automatically loaded from storage on initialization
+ * await apiClient.get('/profile');
+ * 
+ * // Set token (updates both Axios and storage)
+ * apiClient.setAuthToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+ * 
+ * // Token is automatically included in subsequent requests
+ * await apiClient.post('/items', { title: 'New Item' });
+ * 
+ * // 401 responses automatically clear tokens and throw AuthenticationError
+ */
