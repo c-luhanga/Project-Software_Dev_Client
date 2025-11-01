@@ -20,6 +20,7 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   ITEMS: '/items',
   MESSAGES: '/messages',
+  INBOX: '/inbox',
 } as const;
 
 /**
@@ -83,6 +84,13 @@ export const ROUTE_METADATA: Record<keyof typeof ROUTES, RouteMetadata> = {
     path: ROUTES.MESSAGES,
     title: 'Messages',
     description: 'View your conversations',
+    requiresAuth: true,
+    icon: 'message-circle'
+  },
+  INBOX: {
+    path: ROUTES.INBOX,
+    title: 'Inbox',
+    description: 'Alias for messages - redirects to messages',
     requiresAuth: true,
     icon: 'message-circle'
   }

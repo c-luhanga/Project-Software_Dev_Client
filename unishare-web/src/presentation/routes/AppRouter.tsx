@@ -23,11 +23,11 @@ import { ProfilePage } from '../pages/profile';
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
-      {/* Public Auth Routes */}
+      {/* Public Auth Routes - No Protection Required */}
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/register" element={<RegisterPage />} />
       
-      {/* Protected Routes */}
+      {/* Protected Routes - All Private Routes Wrapped with ProtectedRoute */}
       <Route
         path="/"
         element={
@@ -37,7 +37,6 @@ export const AppRouter: React.FC = () => {
         }
       />
       
-      {/* Protected Dashboard Routes (placeholder for future) */}
       <Route
         path="/dashboard"
         element={
@@ -47,7 +46,6 @@ export const AppRouter: React.FC = () => {
         }
       />
       
-      {/* Protected Items Routes (placeholder for future) */}
       <Route
         path="/items"
         element={
@@ -57,7 +55,6 @@ export const AppRouter: React.FC = () => {
         }
       />
       
-      {/* Protected Messages Routes (placeholder for future) */}
       <Route
         path="/messages"
         element={
@@ -67,7 +64,16 @@ export const AppRouter: React.FC = () => {
         }
       />
       
-      {/* Protected Profile Routes */}
+      {/* Inbox route alias - redirects to messages */}
+      <Route
+        path="/inbox"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/messages" replace />
+          </ProtectedRoute>
+        }
+      />
+      
       <Route
         path="/profile"
         element={
@@ -77,7 +83,7 @@ export const AppRouter: React.FC = () => {
         }
       />
       
-      {/* Catch-all redirect to home */}
+      {/* Catch-all redirect - Unknown paths redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
