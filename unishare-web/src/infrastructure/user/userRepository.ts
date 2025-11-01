@@ -36,7 +36,7 @@ export class UserRepository implements IUserRepository {
   async getMe(): Promise<UserProfile> {
     try {
       // Call API endpoint for current user profile
-      const response = await this.apiClient.get<ApiUserProfile>('/api/users/me');
+      const response = await this.apiClient.get<ApiUserProfile>('/users/me');
       
       // Map API response to domain UserProfile
       return this.mapToUserProfile(response);
@@ -69,7 +69,7 @@ export class UserRepository implements IUserRepository {
       const requestBody = this.createUpdateRequestBody(command);
       
       // Send PUT request to API endpoint (maps nothing back)
-      await this.apiClient.put<void>('/api/users/me', requestBody);
+      await this.apiClient.put<void>('/users/me', requestBody);
       
       // No response mapping - rely on subsequent getMe() to refresh state
     } catch (error) {
