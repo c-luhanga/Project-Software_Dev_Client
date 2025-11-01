@@ -10,7 +10,7 @@
  */
 
 import type { IUserService, IUserRepository, UserProfile, UpdateProfileCommand, ItemSummary } from './contracts';
-import { validateUpdateProfile } from './validators';
+import { validateUpdateProfile, UserValidationError } from './validators';
 
 /**
  * Domain service implementing user business operations
@@ -50,44 +50,106 @@ export class UserService implements IUserService {
   }
 
   /**
-   * Update current user's profile
-   * Validates command and applies business rules before delegation
-   * @param command Update profile command
+   * Update current user's profile with comprehensive validation and orchestration
+   * 
+   * Service Orchestration (SRP):
+   * - Validates command using domain validation rules
+   * - Applies business rules and transformations
+   * - Delegates to repository for persistence
+   * - Maintains clean error boundaries
+   * 
+   * Extensibility (OCP):
+   * - Business rules can be added without changing callers
+   * - Validation can be enhanced without interface changes
+   * - Post-processing hooks ready for future features
+   * 
+   * @param command Update profile command with new values
+   * @throws UserValidationError for validation failures with structured error details
+   * @throws Error for repository/infrastructure failures (not swallowed)
+   * @returns Promise<void> indicating successful completion
    */
   async updateProfile(command: UpdateProfileCommand): Promise<void> {
-    try {
-      // Domain validation first (business rule enforcement)
-      const validationResult = validateUpdateProfile(command);
+    // Step 1: Domain validation (business rule enforcement)
+    const validationResult = validateUpdateProfile(command);
+    
+    if (!validationResult.success) {
+      // Create structured domain validation error
+      const errorDetails = validationResult.errors
+        .map(e => `${e.field}: ${e.message}`)
+        .join(', ');
       
-      if (!validationResult.success) {
-        // Transform validation errors to business exception
-        const errorMessages = validationResult.errors.map(e => e.message);
-        throw new Error(`Profile validation failed: ${errorMessages.join(', ')}`);
-      }
-
-      // Future business rules can be added here (OCP):
-      // - Profile change frequency limits
-      // - Admin approval requirements for certain fields
-      // - Profile image content validation
-      // - Notification triggers for profile changes
-      // - Data privacy compliance checks
-
-      // Delegate to repository with validated data
-      await this.userRepository.updateMe(validationResult.data);
-
-      // Future post-update operations (OCP):
-      // - Send notification emails
-      // - Update search indexes
-      // - Log audit trail
-      // - Clear related caches
-
-    } catch (error) {
-      // Domain-level error transformation
-      if (error instanceof Error) {
-        throw new Error(`Failed to update profile: ${error.message}`);
-      }
-      throw new Error('An unexpected error occurred while updating your profile');
+      throw new UserValidationError(
+        `Profile validation failed: ${errorDetails}`,
+        'profile' as keyof UpdateProfileCommand,
+        'VALIDATION_FAILED'
+      );
     }
+
+    // Step 2: Business rule processing (OCP extension point)
+    const processedCommand = await this.applyBusinessRules(validationResult.data);
+
+    // Step 3: Repository delegation (do not swallow errors)
+    await this.userRepository.updateMe(processedCommand);
+
+    // Step 4: Post-update operations (OCP extension point)
+    await this.performPostUpdateOperations(processedCommand);
+  }
+
+  /**
+   * Apply business rules and data transformations (OCP extension point)
+   * 
+   * Future extensions without modifying callers:
+   * - Phone number normalization (format standardization)
+   * - House name standardization (building code lookup)
+   * - Profile image URL validation and optimization
+   * - Data enrichment (address geocoding, phone carrier lookup)
+   * - Privacy settings application
+   * - User type-specific field processing
+   * 
+   * @param command Validated update command
+   * @returns Promise<UpdateProfileCommand> with business rules applied
+   */
+  private async applyBusinessRules(command: UpdateProfileCommand): Promise<UpdateProfileCommand> {
+    // Currently pass-through, but ready for business rule extensions
+    let processedCommand = { ...command };
+
+    // Future business rules (examples):
+    // if (processedCommand.phone) {
+    //   processedCommand.phone = await this.normalizePhoneNumber(processedCommand.phone);
+    // }
+    // 
+    // if (processedCommand.house) {
+    //   processedCommand.house = await this.standardizeHouseName(processedCommand.house);
+    // }
+    //
+    // if (processedCommand.profileImageUrl) {
+    //   processedCommand.profileImageUrl = await this.optimizeImageUrl(processedCommand.profileImageUrl);
+    // }
+
+    return processedCommand;
+  }
+
+  /**
+   * Perform post-update operations (OCP extension point)
+   * 
+   * Future extensions without modifying callers:
+   * - Send notification emails for profile changes
+   * - Update search indexes with new profile data
+   * - Log audit trail for compliance tracking
+   * - Clear related caches (profile cache, user cache)
+   * - Trigger webhooks for external system integration
+   * - Update derived data (user score, completeness metrics)
+   * 
+   * @param _command The successfully processed command (reserved for future extensions)
+   */
+  private async performPostUpdateOperations(_command: UpdateProfileCommand): Promise<void> {
+    // Currently no-op, but ready for post-update extensions
+    
+    // Future post-update operations (examples):
+    // await this.notificationService.sendProfileUpdateEmail(_command);
+    // await this.searchIndexService.updateUserProfile(_command);
+    // await this.auditService.logProfileUpdate(_command);
+    // await this.cacheService.invalidateUserCache();
   }
 
   /**
