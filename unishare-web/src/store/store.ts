@@ -3,6 +3,7 @@ import type { ThunkAction, Action } from '@reduxjs/toolkit';
 import { container } from '../core/container';
 import authReducer from './authSlice';
 import profileReducer from './profileSlice';
+import itemsReducer from './itemsSlice';
 
 /**
  * Extra argument interface for thunk middleware
@@ -20,8 +21,8 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     profile: profileReducer,
+    items: itemsReducer,
     // TODO: Add additional feature slices here
-    // items: itemsSlice.reducer,
     // messages: messagesSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
