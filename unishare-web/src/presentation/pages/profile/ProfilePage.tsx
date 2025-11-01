@@ -54,7 +54,6 @@ interface SnackbarProps {
 
 function Snackbar({ message, type, onClose }: SnackbarProps) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const severity = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
 
   return (

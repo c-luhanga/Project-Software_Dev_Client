@@ -9,6 +9,7 @@
 export type {
   UserProfile,
   UpdateProfileCommand,
+  NonEmptyUpdateCommand,
   ItemSummary,
   IUserRepository,
   IUserService
