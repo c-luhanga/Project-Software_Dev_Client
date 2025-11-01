@@ -7,105 +7,168 @@
  */
 
 /**
- * Image upload contract following Interface Segregation Principle
- * Simple interface with single responsibility: upload images and return public URLs
+ * Image upload contract following Interface Segregation Principle (ISP)
+ * Simple interface focused solely on image upload operations
  */
 export interface IImageUploader {
   /**
    * Upload an image file and return a public URL
    * @param file - The image file to upload
    * @returns Promise resolving to the public URL of the uploaded image
-   * @throws Error if upload fails
+   * @throws Error if upload fails or file validation fails
    */
   upload(file: File): Promise<string>;
+
+  /**
+   * Validate if file is a supported image type
+   * @param file File to validate
+   * @returns boolean indicating if file is valid image
+   */
+  isValidImageFile(file: File): boolean;
+
+  /**
+   * Get maximum allowed file size in bytes
+   * @returns maximum file size in bytes
+   */
+  getMaxFileSize(): number;
 }
 
 /**
  * Firebase Image Uploader Implementation
- * TODO: Implement Firebase Storage integration
- * 
- * This will handle:
- * - File validation (size, type)
- * - Firebase Storage upload
- * - Public URL generation
- * - Error handling and retry logic
+ * TODO: Implement Firebase Storage integration when ready
  */
 export class FirebaseImageUploader implements IImageUploader {
-  readonly config: {
-    bucket?: string;
-    maxSizeBytes?: number;
-    allowedTypes?: string[];
-  };
+  private readonly maxFileSize: number;
+  private readonly supportedTypes: string[];
 
   constructor(config?: {
     bucket?: string;
     maxSizeBytes?: number;
     allowedTypes?: string[];
   }) {
-    this.config = config || {};
+    this.maxFileSize = config?.maxSizeBytes ?? 5 * 1024 * 1024; // 5MB default
+    this.supportedTypes = config?.allowedTypes ?? [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/bmp'
+    ];
   }
 
-  async upload(_file: File): Promise<string> {
-    // TODO: Implement Firebase Storage upload
-    // 1. Validate file type and size
-    // 2. Generate unique filename
-    // 3. Upload to Firebase Storage
-    // 4. Get public download URL
-    // 5. Return URL
+  async upload(file: File): Promise<string> {
+    // Validate file
+    if (!this.isValidImageFile(file)) {
+      throw new Error(`Unsupported file type: ${file.type}`);
+    }
+
+    if (file.size > this.maxFileSize) {
+      throw new Error(`File size exceeds maximum allowed size`);
+    }
+
+    // TODO: Implement Firebase Storage upload when ready
+    // Example implementation:
+    // const storage = getStorage();
+    // const imageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+    // const snapshot = await uploadBytes(imageRef, file);
+    // return await getDownloadURL(snapshot.ref);
     
-    throw new Error('FirebaseImageUploader not yet implemented. TODO: Add Firebase Storage integration.');
+    throw new Error('FirebaseImageUploader not yet implemented. Use MockImageUploader for development.');
+  }
+
+  isValidImageFile(file: File): boolean {
+    return this.supportedTypes.includes(file.type.toLowerCase());
+  }
+
+  getMaxFileSize(): number {
+    return this.maxFileSize;
   }
 }
 
 /**
- * Local Mock Image Uploader for Development
- * Returns data URLs for immediate preview without external dependencies
- * Useful for testing and development when Firebase isn't configured
+ * Mock Image Uploader for Development and Testing
+ * Returns blob URLs or fake CDN URLs based on configuration
+ * Framework-agnostic implementation for development purposes
  */
-export class LocalMockImageUploader implements IImageUploader {
-  readonly config: {
-    maxSizeBytes?: number;
-    allowedTypes?: string[];
-  };
+export class MockImageUploader implements IImageUploader {
+  private readonly maxFileSize: number;
+  private readonly supportedTypes: string[];
+  private readonly useFakeCdn: boolean;
 
   constructor(config?: {
     maxSizeBytes?: number;
     allowedTypes?: string[];
+    useFakeCdn?: boolean;
   }) {
-    this.config = config || {};
+    this.maxFileSize = config?.maxSizeBytes ?? 5 * 1024 * 1024; // 5MB default
+    this.supportedTypes = config?.allowedTypes ?? [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/bmp',
+      'image/svg+xml'
+    ];
+    this.useFakeCdn = config?.useFakeCdn ?? false;
   }
 
   async upload(file: File): Promise<string> {
-    // Validate file type
-    const allowedTypes = this.config?.allowedTypes || ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error(`Unsupported file type: ${file.type}. Allowed types: ${allowedTypes.join(', ')}`);
+    // Validate file
+    if (!this.isValidImageFile(file)) {
+      throw new Error(`Unsupported file type: ${file.type}. Supported types: ${this.supportedTypes.join(', ')}`);
     }
 
-    // Validate file size (default 5MB)
-    const maxSize = this.config?.maxSizeBytes || 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error(`File too large: ${file.size} bytes. Maximum allowed: ${maxSize} bytes`);
+    if (file.size > this.maxFileSize) {
+      throw new Error(`File size ${file.size} bytes exceeds maximum allowed size ${this.maxFileSize} bytes`);
     }
 
-    // Convert to data URL for immediate preview
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        } else {
-          reject(new Error('Failed to read file as data URL'));
-        }
-      };
-      
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
-      
-      reader.readAsDataURL(file);
-    });
+    // Simulate network delay for realistic development experience
+    await this.simulateNetworkDelay();
+
+    if (this.useFakeCdn) {
+      // Return fake CDN URL for development
+      return this.generateFakeCdnUrl(file);
+    } else {
+      // Return blob URL for immediate local use
+      return URL.createObjectURL(file);
+    }
+  }
+
+  isValidImageFile(file: File): boolean {
+    return this.supportedTypes.includes(file.type.toLowerCase());
+  }
+
+  getMaxFileSize(): number {
+    return this.maxFileSize;
+  }
+
+  /**
+   * Simulate network delay for realistic development experience
+   */
+  private async simulateNetworkDelay(): Promise<void> {
+    const delay = Math.random() * 1000 + 500; // 500-1500ms delay
+    return new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  /**
+   * Generate fake CDN URL for development purposes
+   */
+  private generateFakeCdnUrl(file: File): string {
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const extension = this.getFileExtension(file.name) || 'jpg';
+    
+    return `https://fake-cdn.unishare.dev/images/${timestamp}_${randomId}.${extension}`;
+  }
+
+  /**
+   * Extract file extension from filename
+   */
+  private getFileExtension(filename: string): string | null {
+    const lastDot = filename.lastIndexOf('.');
+    return lastDot !== -1 ? filename.substring(lastDot + 1).toLowerCase() : null;
   }
 }
 
@@ -149,79 +212,158 @@ export const DEFAULT_IMAGE_CONFIG: ImageUploadConfig = {
 };
 
 /**
- * Factory function for creating image uploaders
- * Follows Factory pattern for easy testing and configuration
+ * Factory function for creating image uploaders (DIP principle)
+ * Allows easy swapping of implementations based on environment
  */
 export function createImageUploader(
   type: 'firebase' | 'mock' = 'mock',
-  config?: Partial<ImageUploadConfig>
+  config?: {
+    maxSizeBytes?: number;
+    allowedTypes?: string[];
+    useFakeCdn?: boolean;
+  }
 ): IImageUploader {
-  const finalConfig = { ...DEFAULT_IMAGE_CONFIG, ...config };
-  
   switch (type) {
     case 'firebase':
-      return new FirebaseImageUploader(finalConfig);
+      return new FirebaseImageUploader({
+        maxSizeBytes: config?.maxSizeBytes,
+        allowedTypes: config?.allowedTypes
+      });
     case 'mock':
-      return new LocalMockImageUploader(finalConfig);
+      return new MockImageUploader({
+        maxSizeBytes: config?.maxSizeBytes,
+        allowedTypes: config?.allowedTypes,
+        useFakeCdn: config?.useFakeCdn
+      });
     default:
       throw new Error(`Unknown image uploader type: ${type}`);
   }
 }
 
+/**
+ * Enhanced factory class for more sophisticated creation patterns
+ */
+export class ImageUploaderFactory {
+  /**
+   * Create mock uploader for development and testing
+   */
+  static createMockUploader(options?: {
+    maxSizeBytes?: number;
+    allowedTypes?: string[];
+    useFakeCdn?: boolean;
+  }): IImageUploader {
+    return new MockImageUploader(options);
+  }
+
+  /**
+   * Create Firebase uploader for production (when implemented)
+   */
+  static createFirebaseUploader(options?: {
+    bucket?: string;
+    maxSizeBytes?: number;
+    allowedTypes?: string[];
+  }): IImageUploader {
+    return new FirebaseImageUploader(options);
+  }
+
+  /**
+   * Create uploader based on environment configuration
+   */
+  static createUploader(environment: 'development' | 'production' | 'test', config?: {
+    bucket?: string;
+    maxSizeBytes?: number;
+    allowedTypes?: string[];
+    useFakeCdn?: boolean;
+  }): IImageUploader {
+    switch (environment) {
+      case 'development':
+      case 'test':
+        return this.createMockUploader({
+          maxSizeBytes: config?.maxSizeBytes,
+          allowedTypes: config?.allowedTypes,
+          useFakeCdn: config?.useFakeCdn ?? false
+        });
+
+      case 'production':
+        return this.createFirebaseUploader({
+          bucket: config?.bucket,
+          maxSizeBytes: config?.maxSizeBytes,
+          allowedTypes: config?.allowedTypes
+        });
+
+      default:
+        throw new Error(`Unsupported environment: ${environment}`);
+    }
+  }
+}
+
+/**
+ * Default export for convenient access
+ */
+export default ImageUploaderFactory;
+
 /*
- * Architecture Benefits:
+ * Usage Examples:
  * 
- * 1. Single Responsibility Principle (SRP):
- *    - IImageUploader: Single purpose interface for image uploads
- *    - FirebaseImageUploader: Only handles Firebase-specific upload logic
- *    - LocalMockImageUploader: Only handles local mock functionality
+ * // Development usage with blob URLs
+ * const uploader = createImageUploader('mock');
+ * const imageUrl = await uploader.upload(file);
  * 
- * 2. Dependency Inversion Principle (DIP):
- *    - Profile components depend on IImageUploader abstraction
- *    - Can easily swap implementations (Firebase ↔ AWS ↔ Local)
- *    - No coupling to specific upload service
+ * // Development usage with fake CDN URLs
+ * const uploaderWithCdn = createImageUploader('mock', { useFakeCdn: true });
+ * const cdnUrl = await uploaderWithCdn.upload(file);
  * 
- * 3. Open/Closed Principle (OCP):
- *    - Easy to add new uploaders (AWS, Cloudinary, etc.)
- *    - Existing code doesn't need modification
+ * // Using factory class for mock uploader
+ * const mockUploader = ImageUploaderFactory.createMockUploader({ useFakeCdn: true });
+ * const url = await mockUploader.upload(file);
  * 
- * 4. Interface Segregation Principle (ISP):
- *    - Simple interface with only required methods
- *    - No forced dependencies on unused functionality
+ * // Environment-based factory
+ * const envUploader = ImageUploaderFactory.createUploader(
+ *   process.env.NODE_ENV === 'production' ? 'production' : 'development',
+ *   { useFakeCdn: true }
+ * );
  * 
- * 5. Testability:
- *    - Easy to mock IImageUploader for testing
- *    - LocalMockImageUploader for development
- *    - Clear error types for test assertions
- * 
- * Usage Example in Profile Component:
- * 
- * const imageUploader = createImageUploader('mock'); // or 'firebase'
- * 
- * const handleImageUpload = async (file: File) => {
- *   try {
- *     const imageUrl = await imageUploader.upload(file);
- *     await updateProfile({ profileImageUrl: imageUrl });
- *   } catch (error) {
- *     console.error('Upload failed:', error);
- *   }
- * };
- * 
- * Future DI Integration:
- * 
- * // In DI container
- * getImageUploader(): IImageUploader {
- *   return createImageUploader(
- *     process.env.NODE_ENV === 'production' ? 'firebase' : 'mock'
- *   );
+ * // Validation before upload
+ * if (!uploader.isValidImageFile(file)) {
+ *   console.error('Invalid file type');
+ *   return;
  * }
  * 
- * // In Redux thunk
- * const uploadImageThunk = createAsyncThunk(
- *   'profile/uploadImage',
- *   async (file: File, { extra }) => {
- *     const imageUploader = extra.container.getImageUploader();
- *     return await imageUploader.upload(file);
- *   }
- * );
+ * if (file.size > uploader.getMaxFileSize()) {
+ *   console.error('File too large');
+ *   return;
+ * }
+ */
+
+/*
+ * SOLID Principles Implementation Summary:
+ * 
+ * Single Responsibility Principle (SRP):
+ * - IImageUploader: Single responsibility for image upload contract
+ * - MockImageUploader: Single responsibility for mock upload implementation  
+ * - FirebaseImageUploader: Single responsibility for Firebase upload implementation
+ * - ImageUploaderFactory: Single responsibility for creating uploader instances
+ * 
+ * Dependency Inversion Principle (DIP):
+ * - High-level modules depend on IImageUploader abstraction
+ * - Concrete implementations can be swapped without changing dependents
+ * - Factory pattern enables configuration-based dependency injection
+ * - No coupling to specific upload services
+ * 
+ * Open/Closed Principle (OCP):
+ * - Easy to add new uploader implementations (S3, Cloudinary, etc.)
+ * - Interface allows extension without modification
+ * - Factory can be extended with new creation methods
+ * 
+ * Interface Segregation Principle (ISP):
+ * - IImageUploader focused only on image upload operations
+ * - No unrelated methods or dependencies
+ * 
+ * Clean Architecture Benefits:
+ * - Framework agnostic: No React/UI dependencies  
+ * - Testable: Easy to mock implementations
+ * - Flexible: Support for multiple storage backends
+ * - Type-safe: Full TypeScript support
+ * - Environment-aware: Different implementations for different environments
+ * - Development-friendly: Mock implementation with blob URLs and fake CDN URLs
  */
