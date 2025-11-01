@@ -23,7 +23,8 @@ export {
 } from './user/validators';
 
 export type {
-  ValidationResult
+  ValidationResult,
+  ValidationError
 } from './user/validators';
 
 // User domain services

@@ -22,8 +22,7 @@ export class UserService {
       // Convert domain validation errors to UI-friendly format
       const uiErrors = validationResult.errors.map(error => ({
         field: error.field,
-        message: error.message,
-        code: error.code
+        message: error.message
       }));
       
       // Throw structured error that matches your existing error handling

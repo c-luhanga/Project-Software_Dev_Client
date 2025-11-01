@@ -1,6 +1,15 @@
 import type { UpdateProfileCommand } from './contracts';
 
 /**
+ * Normalized validation error format for consistent error handling
+ * Framework-agnostic structure suitable for any presentation layer
+ */
+export interface ValidationError {
+  readonly field: string;
+  readonly message: string;
+}
+
+/**
  * Domain validation error for user profile operations
  * Provides structured error information following domain patterns
  */
@@ -18,29 +27,56 @@ export class UserValidationError extends Error {
     this.field = field;
     this.code = code;
   }
+
+  /**
+   * Convert to normalized error format
+   */
+  toNormalizedError(): ValidationError {
+    return {
+      field: this.field,
+      message: this.message
+    };
+  }
 }
 
 /**
  * Validation result type for type-safe error handling
+ * Enhanced to include normalized command with trimmed/cleaned data
  */
 export type ValidationResult<T> = {
   success: true;
   data: T;
 } | {
   success: false;
-  errors: UserValidationError[];
+  errors: ValidationError[];
 };
+
+/**
+ * Processing result for individual field validation
+ * Used internally by validator to track normalized values and errors
+ */
+interface FieldProcessResult {
+  value: string | null;
+  errors: UserValidationError[];
+}
 
 /**
  * User profile validator following Single Responsibility and Open/Closed Principles
  * 
  * Responsibilities:
- * - Validate UpdateProfileCommand fields according to business rules
- * - Return structured errors for UI consumption
- * - Maintain pure domain logic without framework dependencies
+ * - Validate and normalize UpdateProfileCommand fields according to business rules
+ * - Trim whitespace and omit empty fields from final command
+ * - Return structured errors in normalized format for framework-agnostic consumption
+ * - Maintain pure domain logic without UI/framework dependencies
+ * 
+ * Strengthened Validation Rules:
+ * - Phone: 7-20 characters after trimming, allows digits, spaces, hyphens, parentheses, plus
+ * - House: 2-40 characters after trimming, any printable characters
+ * - ProfileImageUrl: Must be valid absolute HTTP/HTTPS URL pointing to image file
+ * - Empty fields: Omitted from final command (not saved as empty strings)
  * 
  * OCP: Easy to extend with new validation rules without modifying existing code
- * SRP: Focused solely on user profile validation
+ * SRP: Focused solely on user profile validation and normalization
  */
 export class UserProfileValidator {
   private readonly phoneMinLength = 7;
@@ -49,62 +85,78 @@ export class UserProfileValidator {
   private readonly houseMaxLength = 40;
 
   /**
-   * Validates UpdateProfileCommand and returns typed result
+   * Validates and normalizes UpdateProfileCommand
+   * Trims strings, validates according to business rules, omits empty fields
+   * 
    * @param command The profile update command to validate
-   * @returns ValidationResult with parsed data or structured errors
+   * @returns ValidationResult with normalized data or structured error map
    */
   validateUpdateProfile(command: UpdateProfileCommand): ValidationResult<UpdateProfileCommand> {
     const errors: UserValidationError[] = [];
+    const normalizedFields: Record<string, string> = {};
 
-    // Validate phone field
+    // Process and validate phone field
     if (command.phone !== undefined) {
-      const phoneErrors = this.validatePhone(command.phone);
-      errors.push(...phoneErrors);
+      const phoneResult = this.processPhone(command.phone);
+      if (phoneResult.errors.length > 0) {
+        errors.push(...phoneResult.errors);
+      } else if (phoneResult.value !== null) {
+        normalizedFields.phone = phoneResult.value;
+      }
+      // If value is null (empty after trim), field is omitted from final command
     }
 
-    // Validate house field
+    // Process and validate house field
     if (command.house !== undefined) {
-      const houseErrors = this.validateHouse(command.house);
-      errors.push(...houseErrors);
+      const houseResult = this.processHouse(command.house);
+      if (houseResult.errors.length > 0) {
+        errors.push(...houseResult.errors);
+      } else if (houseResult.value !== null) {
+        normalizedFields.house = houseResult.value;
+      }
+      // If value is null (empty after trim), field is omitted from final command
     }
 
-    // Validate profile image URL
+    // Process and validate profile image URL
     if (command.profileImageUrl !== undefined) {
-      const urlErrors = this.validateProfileImageUrl(command.profileImageUrl);
-      errors.push(...urlErrors);
+      const urlResult = this.processProfileImageUrl(command.profileImageUrl);
+      if (urlResult.errors.length > 0) {
+        errors.push(...urlResult.errors);
+      } else if (urlResult.value !== null) {
+        normalizedFields.profileImageUrl = urlResult.value;
+      }
+      // If value is null (empty after trim), field is omitted from final command
     }
 
-    // Return result
+    // Return validation result
     if (errors.length === 0) {
       return {
         success: true,
-        data: command
+        data: normalizedFields as UpdateProfileCommand
       };
     }
 
     return {
       success: false,
-      errors
+      errors: errors.map(error => error.toNormalizedError())
     };
   }
 
   /**
-   * Validate phone number according to business rules
-   * OCP: Can be extended with more specific phone validation rules
+   * Process and validate phone field
+   * Trims input, validates length and format, returns normalized value or null if empty
    */
-  private validatePhone(phone: string): UserValidationError[] {
+  private processPhone(phone: string): FieldProcessResult {
+    const trimmed = phone.trim();
     const errors: UserValidationError[] = [];
 
-    if (phone.trim().length === 0) {
-      errors.push(new UserValidationError(
-        'Phone number cannot be empty when provided',
-        'phone',
-        'EMPTY_VALUE'
-      ));
-      return errors;
+    // If empty after trim, omit field (return null)
+    if (trimmed.length === 0) {
+      return { value: null, errors: [] };
     }
 
-    if (phone.length < this.phoneMinLength) {
+    // Validate length constraints
+    if (trimmed.length < this.phoneMinLength) {
       errors.push(new UserValidationError(
         `Phone number must be at least ${this.phoneMinLength} characters`,
         'phone',
@@ -112,7 +164,7 @@ export class UserProfileValidator {
       ));
     }
 
-    if (phone.length > this.phoneMaxLength) {
+    if (trimmed.length > this.phoneMaxLength) {
       errors.push(new UserValidationError(
         `Phone number must not exceed ${this.phoneMaxLength} characters`,
         'phone',
@@ -120,75 +172,78 @@ export class UserProfileValidator {
       ));
     }
 
-    // Basic phone format validation (digits, spaces, hyphens, parentheses, plus)
+    // Validate format (digits, spaces, hyphens, parentheses, plus)
     const phoneRegex = /^[\d\s\-\(\)\+]+$/;
-    if (!phoneRegex.test(phone)) {
+    if (!phoneRegex.test(trimmed)) {
       errors.push(new UserValidationError(
-        'Phone number contains invalid characters',
+        'Phone number can only contain digits, spaces, hyphens, parentheses, and plus signs',
         'phone',
         'INVALID_FORMAT'
       ));
     }
 
-    return errors;
+    return {
+      value: errors.length === 0 ? trimmed : null,
+      errors
+    };
   }
 
   /**
-   * Validate house field according to business rules
-   * OCP: Can be extended with house-specific validation (e.g., valid house names)
+   * Process and validate house field
+   * Trims input, validates length, returns normalized value or null if empty
    */
-  private validateHouse(house: string): UserValidationError[] {
+  private processHouse(house: string): FieldProcessResult {
+    const trimmed = house.trim();
     const errors: UserValidationError[] = [];
 
-    if (house.trim().length === 0) {
-      errors.push(new UserValidationError(
-        'House name cannot be empty when provided',
-        'house',
-        'EMPTY_VALUE'
-      ));
-      return errors;
+    // If empty after trim, omit field (return null)
+    if (trimmed.length === 0) {
+      return { value: null, errors: [] };
     }
 
-    if (house.length < this.houseMinLength) {
+    // Validate length constraints
+    if (trimmed.length < this.houseMinLength) {
       errors.push(new UserValidationError(
-        `House name must be at least ${this.houseMinLength} characters`,
+        `House information must be at least ${this.houseMinLength} characters`,
         'house',
         'MIN_LENGTH'
       ));
     }
 
-    if (house.length > this.houseMaxLength) {
+    if (trimmed.length > this.houseMaxLength) {
       errors.push(new UserValidationError(
-        `House name must not exceed ${this.houseMaxLength} characters`,
+        `House information must not exceed ${this.houseMaxLength} characters`,
         'house',
         'MAX_LENGTH'
       ));
     }
 
-    return errors;
+    // House can contain any printable characters (no additional format validation)
+
+    return {
+      value: errors.length === 0 ? trimmed : null,
+      errors
+    };
   }
 
   /**
-   * Validate profile image URL according to business rules
-   * OCP: Can be extended with more specific URL validation (file types, domains, etc.)
+   * Process and validate profile image URL
+   * Trims input, validates as absolute HTTP/HTTPS URL with image file extension
    */
-  private validateProfileImageUrl(profileImageUrl: string): UserValidationError[] {
+  private processProfileImageUrl(profileImageUrl: string): FieldProcessResult {
+    const trimmed = profileImageUrl.trim();
     const errors: UserValidationError[] = [];
 
-    if (profileImageUrl.trim().length === 0) {
-      errors.push(new UserValidationError(
-        'Profile image URL cannot be empty when provided',
-        'profileImageUrl',
-        'EMPTY_VALUE'
-      ));
-      return errors;
+    // If empty after trim, omit field (return null)
+    if (trimmed.length === 0) {
+      return { value: null, errors: [] };
     }
 
     // Validate as absolute URL
     try {
-      const url = new URL(profileImageUrl);
+      const url = new URL(trimmed);
       
-      // Must be HTTP or HTTPS
+      // Must be HTTP or HTTPS protocol
       if (url.protocol !== 'http:' && url.protocol !== 'https:') {
         errors.push(new UserValidationError(
           'Profile image URL must use HTTP or HTTPS protocol',
@@ -197,15 +252,15 @@ export class UserProfileValidator {
         ));
       }
 
-      // Basic file extension check for images
-      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+      // Must point to image file (validate file extension)
+      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
       const hasValidExtension = validExtensions.some(ext => 
         url.pathname.toLowerCase().endsWith(ext)
       );
 
       if (!hasValidExtension) {
         errors.push(new UserValidationError(
-          'Profile image URL must point to a valid image file (.jpg, .jpeg, .png, .gif, .webp)',
+          'Profile image URL must point to a valid image file (.jpg, .jpeg, .png, .gif, .webp, .bmp, .svg)',
           'profileImageUrl',
           'INVALID_FILE_TYPE'
         ));
@@ -219,7 +274,10 @@ export class UserProfileValidator {
       ));
     }
 
-    return errors;
+    return {
+      value: errors.length === 0 ? trimmed : null,
+      errors
+    };
   }
 }
 

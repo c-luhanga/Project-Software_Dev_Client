@@ -53,7 +53,6 @@ interface SnackbarProps {
 }
 
 function Snackbar({ message, type, onClose }: SnackbarProps) {
-  const theme = useTheme();
   const severity = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
 
   return (
