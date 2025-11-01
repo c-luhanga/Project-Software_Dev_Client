@@ -9,6 +9,7 @@ import { AuthService } from '../domain/auth/authService';
 import { AuthValidator } from '../domain/auth/authValidator';
 import { UserRepository } from '../infrastructure/user/userRepository';
 import { UserService } from '../domain/user/userService';
+import * as tokenStorage from '../utils/tokenStorage';
 
 /**
  * Simple Dependency Injection Container
@@ -25,8 +26,15 @@ class DIContainer {
   private readonly _userService: IUserService;
 
   constructor() {
-    // Create API client instance (singleton)
-    this._apiClient = new AxiosApiClient();
+    // Create token storage adapter for API client
+    const tokenStorageAdapter = {
+      getToken: tokenStorage.getToken,
+      setToken: tokenStorage.setToken,
+      clearToken: tokenStorage.clearToken,
+    };
+
+    // Create API client instance with token storage dependency
+    this._apiClient = new AxiosApiClient(tokenStorageAdapter);
 
     // Create token manager that delegates to API client
     this._tokenManager = this.createApiClientTokenManager();

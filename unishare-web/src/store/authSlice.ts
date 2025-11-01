@@ -31,6 +31,42 @@ const initialState: AuthState = {
  */
 
 /**
+ * Rehydrate authentication state from persistent storage
+ * Loads token from storage and validates it by fetching user data
+ */
+export const rehydrateFromStorageThunk = createAsyncThunk<
+  { token: string; user: User },
+  void,
+  AsyncThunkConfig
+>(
+  'auth/rehydrateFromStorage',
+  async (_, { extra: { container }, rejectWithValue }) => {
+    try {
+      // Get token from storage via DI container
+      const tokenManager = container.tokenManager;
+      const token = tokenManager.getToken();
+      
+      if (!token) {
+        return rejectWithValue('No token found in storage');
+      }
+
+      // Validate token by fetching user data
+      const authService = container.authService;
+      const user = await authService.getCurrentUser();
+      
+      return { token, user };
+    } catch (error: any) {
+      // Clear invalid token from storage
+      const tokenManager = container.tokenManager;
+      tokenManager.clearToken();
+      
+      const mappedError = mapError(error);
+      return rejectWithValue(mappedError.message);
+    }
+  }
+);
+
+/**
  * Login thunk - authenticates user and updates token
  */
 export const loginThunk = createAsyncThunk<
@@ -120,7 +156,8 @@ export const refreshTokenThunk = createAsyncThunk<
 );
 
 /**
- * Logout thunk - clears authentication state
+ * Logout thunk - clears authentication state and tokens
+ * Handles side effects: calls server logout, clears tokens, updates HTTP client
  */
 export const logoutThunk = createAsyncThunk<
   void,
@@ -128,15 +165,29 @@ export const logoutThunk = createAsyncThunk<
   AsyncThunkConfig
 >(
   'auth/logout',
-  async (_, { extra: { container } }) => {
+  async (_, { extra: { container }, dispatch }) => {
     try {
+      // Attempt server-side logout (optional - may fail)
       const authService = container.authService;
       await authService.logout();
-      
-      // Token is automatically cleared in AxiosApiClient through the service
     } catch (error: any) {
-      // Even if server logout fails, we'll clear local state
-      console.warn('Logout warning:', error?.message);
+      // Even if server logout fails, we'll continue with local cleanup
+      console.warn('Server logout warning:', error?.message);
+    } finally {
+      // Always clear local tokens and HTTP client auth
+      const tokenManager = container.tokenManager;
+      tokenManager.clearToken();
+      
+      // Ensure HTTP client auth header is cleared via DI
+      const apiClient = container.apiClient;
+      if ('setAuthToken' in apiClient) {
+        (apiClient as any).setAuthToken(null);
+      } else {
+        apiClient.setToken(null);
+      }
+
+      // Dispatch pure logout action to clear state
+      dispatch(authSlice.actions.logout());
     }
   }
 );
@@ -168,6 +219,18 @@ export const authSlice = createSlice({
     },
 
     /**
+     * Pure logout reducer - clears authentication state
+     * Side effects (token clearing, HTTP client updates) handled in logoutThunk
+     * Keeps reducer pure following SRP
+     */
+    logout: (state) => {
+      state.token = null;
+      state.user = null;
+      state.status = 'idle';
+      state.error = undefined;
+    },
+
+    /**
      * Update user profile - for profile updates without full re-auth
      * Supports OCP by allowing profile updates without changing auth flow
      */
@@ -185,6 +248,25 @@ export const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Rehydrate from storage thunk reducers
+    builder
+      .addCase(rehydrateFromStorageThunk.pending, (state) => {
+        state.status = 'loading';
+        state.error = undefined;
+      })
+      .addCase(rehydrateFromStorageThunk.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.token = action.payload.token;
+        state.user = action.payload.user;
+        state.error = undefined;
+      })
+      .addCase(rehydrateFromStorageThunk.rejected, (state, action) => {
+        state.status = 'idle';
+        state.token = null;
+        state.user = null;
+        state.error = action.payload;
+      });
+
     // Login thunk reducers
     builder
       .addCase(loginThunk.pending, (state) => {
@@ -265,14 +347,8 @@ export const authSlice = createSlice({
         state.error = action.payload;
       });
 
-    // Logout thunk reducers
-    builder
-      .addCase(logoutThunk.fulfilled, (state) => {
-        state.token = null;
-        state.user = null;
-        state.status = 'idle';
-        state.error = undefined;
-      });
+    // Note: Logout thunk uses pure logout action instead of extraReducer
+    // This maintains SRP: side effects in thunk, pure state updates in reducer
   },
 });
 
@@ -280,6 +356,7 @@ export const authSlice = createSlice({
 export const { 
   clearError, 
   resetAuthState, 
+  logout,
   updateUserProfile, 
   setLoading 
 } = authSlice.actions;
@@ -301,3 +378,58 @@ export const selectIsLoading = (state: { auth: AuthState }) =>
   state.auth.status === 'loading';
 export const selectIsAdmin = (state: { auth: AuthState }) => 
   Boolean(state.auth.user?.isAdmin);
+
+/*
+ * Enhanced Auth Slice Architecture (SRP + OCP + DIP):
+ * 
+ * Single Responsibility Principle (SRP):
+ * - Pure reducers only handle state updates
+ * - Thunks handle all side effects (API calls, storage, HTTP client)
+ * - Clear separation between state management and external operations
+ * 
+ * Open/Closed Principle (OCP):
+ * - Slice is open for extension via new thunks and actions
+ * - Closed for modification - existing reducers remain unchanged
+ * - New authentication flows can be added without breaking existing code
+ * 
+ * Dependency Inversion Principle (DIP):
+ * - Thunks depend on container abstractions, not concrete implementations
+ * - Token storage accessed via tokenManager interface
+ * - HTTP client accessed via apiClient interface
+ * - Services accessed via dependency injection container
+ * 
+ * Key Enhancements:
+ * 
+ * 1. rehydrateFromStorageThunk():
+ *    - Loads token from storage at app startup
+ *    - Validates token by fetching user data
+ *    - Auto-clears invalid tokens
+ *    - Handles storage unavailability gracefully
+ * 
+ * 2. Enhanced logoutThunk():
+ *    - Handles server logout (with graceful failure)
+ *    - Clears token storage via DI container
+ *    - Updates HTTP client auth headers
+ *    - Dispatches pure logout action for state cleanup
+ *    - Maintains clear separation of concerns
+ * 
+ * 3. Pure logout() reducer:
+ *    - Only handles state clearing
+ *    - No side effects (maintained in thunk)
+ *    - Can be called independently for testing
+ *    - Follows functional programming principles
+ * 
+ * Usage Patterns:
+ * 
+ * // App initialization
+ * dispatch(rehydrateFromStorageThunk());
+ * 
+ * // User logout
+ * dispatch(logoutThunk());
+ * 
+ * // Manual state clearing (testing)
+ * dispatch(logout());
+ * 
+ * // Error handling
+ * dispatch(clearError());
+ */
