@@ -17,7 +17,10 @@ interface ProfileState {
   profile: UserProfile | null;
   items: ItemSummary[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  updateStatus: 'idle' | 'pending' | 'succeeded' | 'failed';
   error?: string;
+  updateError?: string;
+  lastUpdatedAt?: number; // Timestamp for UI feedback
 }
 
 /**
@@ -27,11 +30,15 @@ const initialState: ProfileState = {
   profile: null,
   items: [],
   status: 'idle',
+  updateStatus: 'idle',
   error: undefined,
+  updateError: undefined,
+  lastUpdatedAt: undefined,
 };
 
 /**
  * Thunk extra argument interface for dependency injection
+ * Matches the actual container structure from DIContainer
  */
 interface ThunkExtra {
   container: {
@@ -61,24 +68,33 @@ export const fetchProfileThunk = createAsyncThunk<
 );
 
 /**
- * Async thunk to update user profile
- * Updates profile then fetches fresh data
+ * Async thunk to update user profile (SRP, DIP via thunk extra)
+ * 
+ * Orchestration Pattern:
+ * 1. Resolve IUserService from extra.container (DIP)
+ * 2. Call updateProfile service method
+ * 3. Dispatch fetchProfileThunk to refresh state
+ * 4. Handle pending/fulfilled/rejected with proper state management
+ * 5. Store lastUpdatedAt timestamp for UI feedback
  */
 export const updateProfileThunk = createAsyncThunk<
-  UserProfile,
+  void,
   UpdateProfileCommand,
-  { extra: ThunkExtra; rejectValue: string }
+  { extra: ThunkExtra; rejectValue: string; dispatch: any }
 >(
   'profile/updateProfile',
-  async (command, { extra, rejectWithValue }) => {
+  async (command, { extra, dispatch, rejectWithValue }) => {
     try {
+      // Step 1: Resolve IUserService from container (DIP)
       const userService = extra.container.userService;
       
-      // Update profile
+      // Step 2: Call updateProfile service method
       await userService.updateProfile(command);
       
-      // Fetch fresh profile data
-      return await userService.getProfile();
+      // Step 3: Dispatch fetchProfileThunk to refresh state
+      await dispatch(fetchProfileThunk());
+      
+      // No return value needed - void thunk with side effect
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update profile';
       return rejectWithValue(message);
@@ -120,7 +136,10 @@ const profileSlice = createSlice({
       state.profile = null;
       state.items = [];
       state.status = 'idle';
+      state.updateStatus = 'idle';
       state.error = undefined;
+      state.updateError = undefined;
+      state.lastUpdatedAt = undefined;
     },
 
     /**
@@ -128,6 +147,13 @@ const profileSlice = createSlice({
      */
     clearError: (state) => {
       state.error = undefined;
+    },
+
+    /**
+     * Clear update error state
+     */
+    clearUpdateError: (state) => {
+      state.updateError = undefined;
     },
   },
   extraReducers: (builder) => {
@@ -147,20 +173,20 @@ const profileSlice = createSlice({
         state.error = action.payload || 'Failed to fetch profile';
       })
 
-    // Update Profile Thunk
+    // Update Profile Thunk - Enhanced with separate state tracking
     builder
       .addCase(updateProfileThunk.pending, (state) => {
-        state.status = 'loading';
-        state.error = undefined;
+        state.updateStatus = 'pending';
+        state.updateError = undefined;
       })
-      .addCase(updateProfileThunk.fulfilled, (state, action: PayloadAction<UserProfile>) => {
-        state.status = 'succeeded';
-        state.profile = action.payload; // Fresh profile data after update
-        state.error = undefined;
+      .addCase(updateProfileThunk.fulfilled, (state) => {
+        state.updateStatus = 'succeeded';
+        state.updateError = undefined;
+        state.lastUpdatedAt = Date.now(); // Store timestamp for UI feedback
       })
       .addCase(updateProfileThunk.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload || 'Failed to update profile';
+        state.updateStatus = 'failed';
+        state.updateError = action.payload || 'Failed to update profile';
       })
 
     // Fetch My Items Thunk
@@ -190,7 +216,7 @@ const profileSlice = createSlice({
 /**
  * Action creators
  */
-export const { clearProfile, clearError } = profileSlice.actions;
+export const { clearProfile, clearError, clearUpdateError } = profileSlice.actions;
 
 /**
  * Selectors following consistent naming pattern
@@ -199,6 +225,13 @@ export const selectProfile = (state: RootState): UserProfile | null => state.pro
 export const selectProfileItems = (state: RootState): ItemSummary[] => state.profile.items;
 export const selectProfileStatus = (state: RootState): ProfileState['status'] => state.profile.status;
 export const selectProfileError = (state: RootState): string | undefined => state.profile.error;
+
+/**
+ * Update-specific selectors for UI feedback
+ */
+export const selectUpdateStatus = (state: RootState): ProfileState['updateStatus'] => state.profile.updateStatus;
+export const selectUpdateError = (state: RootState): string | undefined => state.profile.updateError;
+export const selectLastUpdatedAt = (state: RootState): number | undefined => state.profile.lastUpdatedAt;
 
 /**
  * Derived selectors for common UI needs
@@ -211,6 +244,17 @@ export const selectProfileFullName = (state: RootState): string => {
   return `${profile.firstName} ${profile.lastName}`.trim();
 };
 export const selectProfileItemsCount = (state: RootState): number => state.profile.items.length;
+
+/**
+ * Update-specific derived selectors for UI feedback
+ */
+export const selectIsUpdating = (state: RootState): boolean => state.profile.updateStatus === 'pending';
+export const selectHasUpdateError = (state: RootState): boolean => !!state.profile.updateError;
+export const selectUpdateSucceeded = (state: RootState): boolean => state.profile.updateStatus === 'succeeded';
+export const selectTimeSinceLastUpdate = (state: RootState): number | null => {
+  const lastUpdated = state.profile.lastUpdatedAt;
+  return lastUpdated ? Date.now() - lastUpdated : null;
+};
 
 /**
  * Export the reducer
