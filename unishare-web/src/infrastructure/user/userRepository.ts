@@ -36,7 +36,7 @@ export class UserRepository implements IUserRepository {
   async getMe(): Promise<UserProfile> {
     try {
       // Call API endpoint for current user profile
-      const response = await this.apiClient.get<ApiUserProfile>('/users/me');
+      const response = await this.apiClient.get<ApiUserProfile>('/api/users/me');
       
       // Map API response to domain UserProfile
       return this.mapToUserProfile(response);
@@ -52,14 +52,26 @@ export class UserRepository implements IUserRepository {
   }
 
   /**
-   * Update current user's profile
-   * @param command Update profile command with new values
-   * @throws Error if validation fails or update not permitted
+   * Update current user's profile with partial data
+   * 
+   * Infrastructure Implementation:
+   * - Uses PUT endpoint to update user profile
+   * - Sends only defined properties in request body
+   * - Maps nothing back; relies on subsequent getMe() for state refresh
+   * - Pure data access layer with no business logic
+   * 
+   * @param command Partial update command with only changed fields
+   * @throws Error if validation fails, unauthorized, or update not permitted
    */
   async updateMe(command: UpdateProfileCommand): Promise<void> {
     try {
-      // Send update command to API
-      await this.apiClient.put<void>('/users/me', command);
+      // Create request body with only defined properties
+      const requestBody = this.createUpdateRequestBody(command);
+      
+      // Send PUT request to API endpoint (maps nothing back)
+      await this.apiClient.put<void>('/api/users/me', requestBody);
+      
+      // No response mapping - rely on subsequent getMe() to refresh state
     } catch (error) {
       if (error instanceof AuthenticationError) {
         throw new Error('Authentication required to update profile');
@@ -70,6 +82,9 @@ export class UserRepository implements IUserRepository {
         }
         if (error.status === 403) {
           throw new Error('Not authorized to update this profile');
+        }
+        if (error.status === 404) {
+          throw new Error('User profile not found');
         }
         throw new Error(`Failed to update profile: ${error.message}`);
       }
@@ -127,6 +142,36 @@ export class UserRepository implements IUserRepository {
       createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : undefined,
       lastSeen: apiUser.lastSeen ? new Date(apiUser.lastSeen) : undefined,
     };
+  }
+
+  /**
+   * Create HTTP request body with only defined properties
+   * 
+   * Infrastructure Responsibility:
+   * - Filter out undefined properties from the command
+   * - Only send changed/defined fields to the API
+   * - Maintain clean separation between domain commands and API requests
+   * 
+   * @param command Domain update command (may contain undefined fields)
+   * @returns Clean request body with only defined properties
+   */
+  private createUpdateRequestBody(command: UpdateProfileCommand): Record<string, unknown> {
+    const requestBody: Record<string, unknown> = {};
+
+    // Include only defined properties in the request body
+    if (command.phone !== undefined) {
+      requestBody.phone = command.phone;
+    }
+    
+    if (command.house !== undefined) {
+      requestBody.house = command.house;
+    }
+    
+    if (command.profileImageUrl !== undefined) {
+      requestBody.profileImageUrl = command.profileImageUrl;
+    }
+
+    return requestBody;
   }
 
   /**
