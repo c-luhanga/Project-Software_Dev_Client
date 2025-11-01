@@ -4,10 +4,6 @@ import './index.css'
 import { Providers } from './app/Providers'
 import { AppInitializer } from './app/AppInitializer'
 import App from './App.tsx'
-import { rehydrateTokenOnLoad } from './utils/tokenStorage'
-
-// Initialize token storage from sessionStorage before app starts
-rehydrateTokenOnLoad();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
