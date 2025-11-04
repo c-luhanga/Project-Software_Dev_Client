@@ -8,16 +8,18 @@
  * Pure presentational component with no data fetching, Redux, or HTTP dependencies
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Paper,
   Typography,
   CircularProgress,
-  Avatar
+  Avatar,
+  Chip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PersonIcon from '@mui/icons-material/Person';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import type { MessageDto } from '../../../domain/messaging/contracts';
 
 /**
@@ -97,28 +99,40 @@ const MessageAvatar = styled(Avatar)({
 });
 
 /**
- * Format timestamp for message display
+ * Format timestamp for relative display with accessible ISO string
  * @param timestamp ISO timestamp string
- * @returns Formatted time string
+ * @returns Object with relative time and ISO string for accessibility
  */
-const formatMessageTimestamp = (timestamp: string): string => {
+const formatRelativeTimestamp = (timestamp: string): { relative: string; iso: string } => {
   const date = new Date(timestamp);
   const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  let relative: string;
   
-  if (isToday) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (diffMinutes < 1) {
+    relative = 'Just now';
+  } else if (diffMinutes < 60) {
+    relative = `${diffMinutes}m ago`;
+  } else if (diffHours < 24) {
+    relative = `${diffHours}h ago`;
+  } else if (diffDays < 7) {
+    relative = `${diffDays}d ago`;
   } else {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-    
-    if (isYesterday) {
-      return `Yesterday ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } else {
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
+    // Fall back to date format for older messages
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    relative = isThisYear 
+      ? date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+      : date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
   }
+
+  return {
+    relative,
+    iso: date.toISOString()
+  };
 };
 
 /**
@@ -139,7 +153,7 @@ const LoadingSkeleton: React.FC = () => (
 );
 
 /**
- * Empty state component
+ * Enhanced empty state component for new conversations
  */
 const EmptyState: React.FC = () => (
   <Box
@@ -151,15 +165,29 @@ const EmptyState: React.FC = () => (
       height: '100%',
       minHeight: '200px',
       textAlign: 'center',
-      p: 3,
+      p: 4,
     }}
   >
+    <ChatBubbleOutlineIcon 
+      sx={{ 
+        fontSize: 48, 
+        color: 'text.secondary', 
+        mb: 2,
+        opacity: 0.6 
+      }} 
+    />
     <Typography variant="h6" color="text.secondary" gutterBottom>
-      No messages yet
+      Start your conversation
     </Typography>
-    <Typography variant="body2" color="text.secondary">
-      Start the conversation by sending a message
+    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      This is the beginning of your conversation.
     </Typography>
+    <Chip 
+      label="Send a message below to get started" 
+      variant="outlined" 
+      size="small"
+      sx={{ opacity: 0.8 }}
+    />
   </Box>
 );
 
@@ -173,6 +201,8 @@ interface MessageItemProps {
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({ message, isMine, showAvatar }) => {
+  const timestamp = formatRelativeTimestamp(message.timestamp);
+  
   return (
     <MessageContainer isMine={isMine}>
       {!isMine && showAvatar && (
@@ -189,8 +219,13 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isMine, showAvatar }
           <MessageText variant="body2">
             {message.content}
           </MessageText>
-          <MessageTimestamp isMine={isMine} variant="caption">
-            {formatMessageTimestamp(message.timestamp)}
+          <MessageTimestamp 
+            isMine={isMine} 
+            variant="caption"
+            title={timestamp.iso}
+            aria-label={`Message sent at ${timestamp.iso}`}
+          >
+            {timestamp.relative}
           </MessageTimestamp>
         </MessageBubble>
       </MessageContent>
@@ -222,13 +257,39 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   loading
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [prevMessageCount, setPrevMessageCount] = useState(messages.length);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Check if user is near bottom of scroll area
+  const checkNearBottom = useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      const threshold = 100; // pixels from bottom
+      const nearBottom = scrollTop + clientHeight >= scrollHeight - threshold;
+      setIsNearBottom(nearBottom);
+    }
+  }, []);
+
+  // Handle scroll events to track user position
+  const handleScroll = useCallback(() => {
+    checkNearBottom();
+  }, [checkNearBottom]);
+
+  // Auto-scroll to bottom when new messages arrive (only if user is near bottom)
   useEffect(() => {
-    if (scrollRef.current && messages.length > 0) {
+    if (scrollRef.current && messages.length > prevMessageCount && isNearBottom) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+    setPrevMessageCount(messages.length);
+  }, [messages.length, prevMessageCount, isNearBottom]);
+
+  // Initial scroll to bottom on first load
+  useEffect(() => {
+    if (scrollRef.current && messages.length > 0 && prevMessageCount === 0) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      setIsNearBottom(true);
+    }
+  }, [messages.length, prevMessageCount]);
 
   // Handle loading state
   if (loading) {
@@ -264,7 +325,10 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   // Render message thread
   return (
     <Paper sx={{ height: '400px', overflow: 'hidden' }}>
-      <ThreadContainer ref={scrollRef}>
+      <ThreadContainer 
+        ref={scrollRef}
+        onScroll={handleScroll}
+      >
         {messagesWithAvatars.map((message) => (
           <MessageItem
             key={message.messageId}
