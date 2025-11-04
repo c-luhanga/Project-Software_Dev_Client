@@ -64,13 +64,13 @@ const HomePage: React.FC = () => {
   
   // Local search state (for controlled inputs)
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('0');
   const [currentPage, setCurrentPage] = useState(1);
   
   // Constants
   const PAGE_SIZE = 12;
   const CATEGORIES = [
-    { id: '', label: 'All Categories' },
+    { id: '0', label: 'All Categories' },
     { id: '1', label: 'Electronics' },
     { id: '2', label: 'Books' },
     { id: '3', label: 'Clothing' },
@@ -84,7 +84,7 @@ const HomePage: React.FC = () => {
    */
   useEffect(() => {
     const q = searchParams.get('q') || '';
-    const categoryId = searchParams.get('categoryId') || '';
+    const categoryId = searchParams.get('categoryId') || '0';
     const page = parseInt(searchParams.get('page') || '1');
     
     setSearchQuery(q);
@@ -103,14 +103,14 @@ const HomePage: React.FC = () => {
     // Update URL query parameters
     const newSearchParams = new URLSearchParams();
     if (query) newSearchParams.set('q', query);
-    if (categoryId) newSearchParams.set('categoryId', categoryId);
+    if (categoryId && categoryId !== '0') newSearchParams.set('categoryId', categoryId);
     if (page > 1) newSearchParams.set('page', page.toString());
     setSearchParams(newSearchParams);
 
     // Dispatch search thunk
     dispatch(searchItemsThunk({
       query: query || undefined,
-      categoryId: categoryId ? parseInt(categoryId) : undefined,
+      categoryId: categoryId && categoryId !== '0' ? parseInt(categoryId) : undefined,
       page,
       pageSize: PAGE_SIZE
     }));
@@ -272,7 +272,7 @@ const HomePage: React.FC = () => {
 
       {/* Items Grid */}
       {itemsData.length > 0 && (
-        <>
+        <Box>
           <Box
             sx={{
               display: 'grid',
@@ -286,9 +286,9 @@ const HomePage: React.FC = () => {
               mb: 4
             }}
           >
-            {itemsData.map((item) => (
+            {itemsData.map((item, index) => (
               <Card
-                key={item.itemId}
+                key={`item-${item.itemId}-${index}`}
                 sx={{
                   height: '100%',
                   display: 'flex',
@@ -347,7 +347,7 @@ const HomePage: React.FC = () => {
               />
             </Box>
           )}
-        </>
+        </Box>
       )}
 
       {/* Empty State */}
@@ -365,7 +365,7 @@ const HomePage: React.FC = () => {
             No items found
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {searchQuery || selectedCategory
+            {searchQuery || (selectedCategory && selectedCategory !== '0')
               ? 'Try adjusting your search criteria or browse all items'
               : 'Be the first to list an item for sale!'
             }

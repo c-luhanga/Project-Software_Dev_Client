@@ -51,7 +51,7 @@ import AddImagesDialog from '../../components/items/AddImagesDialog';
  * - Orchestrates user interactions via Redux thunks
  */
 const ItemDetailPage: React.FC = () => {
-  const { itemId } = useParams<{ itemId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   
@@ -81,11 +81,20 @@ const ItemDetailPage: React.FC = () => {
    * Load item data on component mount
    */
   useEffect(() => {
-    if (itemId) {
-      dispatch(clearError());
-      dispatch(getItemThunk(parseInt(itemId)));
+    if (!id) {
+      console.error('ItemDetailPage: No ID parameter found in URL');
+      return;
     }
-  }, [dispatch, itemId]);
+    
+    const itemId = parseInt(id, 10);
+    if (isNaN(itemId) || itemId <= 0) {
+      console.error('Invalid item ID:', id);
+      return;
+    }
+    
+    dispatch(clearError());
+    dispatch(getItemThunk(itemId));
+  }, [dispatch, id]);
 
   /**
    * Handle add images action
