@@ -143,7 +143,7 @@ export const AppRouter: React.FC = () => {
             } 
           />
         </Route>
-        
+
         {/* Legacy auth routes - redirect to simplified paths */}
         <Route path="auth/login" element={<Navigate to="/login" replace />} />
         <Route path="auth/register" element={<Navigate to="/register" replace />} />
