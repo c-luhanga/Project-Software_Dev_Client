@@ -11,3 +11,6 @@ export { ApiError, AuthenticationError, AxiosApiClient, apiClient } from './http
 
 // User Infrastructure
 export { UserRepository } from './user';
+
+// Messaging Infrastructure
+export { MessagingRepository, createMessagingRepository } from './messaging/messagingRepository';
