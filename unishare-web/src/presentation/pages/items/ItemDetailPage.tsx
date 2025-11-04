@@ -21,7 +21,8 @@ import {
   Sell as SellIcon,
   ArrowBack as ArrowBackIcon,
   ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon
+  ChevronRight as ChevronRightIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import type { AppDispatch } from '../../../store/store';
 import {
@@ -34,6 +35,7 @@ import {
   selectItemsError
 } from '../../../store/itemsSlice';
 import { selectAuthUser } from '../../../store/authSlice';
+import { canEditItem, canMarkSold } from '../../../domain/auth/permissions';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemDetailActionsContainer } from '../../components/items/ItemDetailActionsContainer';
 import { getStatusLabel, getStatusColor, isItemSold } from '../../../utils/itemStatus';
@@ -221,9 +223,34 @@ const ItemDetailPage: React.FC = () => {
   };
 
   /**
-   * Check if current user is the owner
+   * Check permissions using domain logic
    */
-  const isOwner = currentUser && currentItem && currentUser.userId === currentItem.sellerId;
+  const userPermissions = React.useMemo(() => {
+    if (!currentUser || !currentItem) {
+      return {
+        canEdit: false,
+        canMarkSold: false,
+        canViewActions: false
+      };
+    }
+
+    const userProfile = {
+      userId: currentUser.userId,
+      isAdmin: currentUser.isAdmin
+    };
+
+    const itemDetail = {
+      itemId: currentItem.itemId,
+      sellerId: currentItem.sellerId,
+      statusId: currentItem.statusId
+    };
+
+    return {
+      canEdit: canEditItem(userProfile, itemDetail),
+      canMarkSold: canMarkSold(userProfile, itemDetail),
+      canViewActions: canEditItem(userProfile, itemDetail) // Same as canEdit for now
+    };
+  }, [currentUser, currentItem]);
 
   /**
    * Check if item is sold
@@ -452,24 +479,41 @@ const ItemDetailPage: React.FC = () => {
               {/* Messaging Actions for All Users */}
               <ItemDetailActionsContainer item={currentItem} />
               
-              {/* Owner-Specific Actions */}
-              {isOwner && (
+              {/* Owner-Specific Actions - Based on Permissions */}
+              {userPermissions.canViewActions && (
                 <Box sx={{ mt: 2 }}>
                   <Stack direction="row" spacing={2}>
+                    {/* Add Images Button */}
                     <Button
                       variant="outlined"
                       startIcon={<PhotoCameraIcon />}
                       onClick={handleAddImages}
+                      disabled={!userPermissions.canEdit}
                       sx={{ flex: 1 }}
                     >
                       Add Images
                     </Button>
                     
+                    {/* Edit Button - Placeholder for future implementation */}
+                    <Button
+                      variant="outlined"
+                      startIcon={<EditIcon />}
+                      disabled={!userPermissions.canEdit}
+                      sx={{ flex: 1 }}
+                      onClick={() => {
+                        // TODO: Navigate to edit page when implemented
+                        console.log('Edit item:', currentItem.itemId);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    
+                    {/* Mark as Sold Button */}
                     <Button
                       variant="contained"
                       startIcon={<SellIcon />}
                       onClick={handleMarkSold}
-                      disabled={isSold}
+                      disabled={!userPermissions.canMarkSold || isSold}
                       sx={{ flex: 1 }}
                     >
                       {isSold ? 'Sold' : 'Mark as Sold'}
