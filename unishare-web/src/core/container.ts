@@ -3,6 +3,7 @@ import type { IAuthRepository } from '../infrastructure/auth/IAuthRepository';
 import type { IAuthService, IAuthValidator, ITokenManager } from '../domain/auth/IAuthService';
 import type { IUserRepository, IUserService } from '../domain/user/contracts';
 import type { IItemsRepository, IItemsService } from '../domain/items/contracts';
+import type { IMessagingRepository, IMessagingService } from '../domain/messaging/contracts';
 
 import { AxiosApiClient } from '../infrastructure/http/axiosClient';
 import { AuthRepository } from '../infrastructure/auth/authRepository';
@@ -12,6 +13,8 @@ import { UserRepository } from '../infrastructure/user/userRepository';
 import { UserService } from '../domain/user/userService';
 import { ItemsRepository } from '../infrastructure/items/itemsRepository';
 import { ItemsService } from '../domain/items/itemsService';
+import { MessagingRepository } from '../infrastructure/messaging/messagingRepository';
+import { MessagingService } from '../domain/messaging/messagingService';
 import * as tokenStorage from '../utils/tokenStorage';
 
 /**
@@ -29,6 +32,8 @@ class DIContainer {
   private readonly _userService: IUserService;
   private readonly _itemsRepository: IItemsRepository;
   private readonly _itemsService: IItemsService;
+  private readonly _messagingRepository: IMessagingRepository;
+  private readonly _messagingService: IMessagingService;
 
   constructor() {
     // Create token storage adapter for API client
@@ -68,6 +73,12 @@ class DIContainer {
 
     // Create items service with items repository dependency
     this._itemsService = new ItemsService(this._itemsRepository);
+
+    // Create messaging repository with API client dependency
+    this._messagingRepository = new MessagingRepository(this._apiClient);
+
+    // Create messaging service with messaging repository dependency
+    this._messagingService = new MessagingService(this._messagingRepository);
   }
 
   /**
@@ -134,6 +145,20 @@ class DIContainer {
   }
 
   /**
+   * Get messaging repository instance
+   */
+  get messagingRepository(): IMessagingRepository {
+    return this._messagingRepository;
+  }
+
+  /**
+   * Get messaging service instance
+   */
+  get messagingService(): IMessagingService {
+    return this._messagingService;
+  }
+
+  /**
    * Creates a token manager that delegates to the API client
    * This ensures token synchronization between service layer and HTTP layer
    */
@@ -175,3 +200,5 @@ export const getUserRepository = (): IUserRepository => container.userRepository
 export const getUserService = (): IUserService => container.userService;
 export const getItemsRepository = (): IItemsRepository => container.itemsRepository;
 export const getItemsService = (): IItemsService => container.itemsService;
+export const getMessagingRepository = (): IMessagingRepository => container.messagingRepository;
+export const getMessagingService = (): IMessagingService => container.messagingService;
