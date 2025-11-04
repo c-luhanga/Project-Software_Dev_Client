@@ -7,6 +7,8 @@ import SellItemPage from '../pages/items/SellItemPage';
 import MyListingsPage from '../pages/items/MyListingsPage';
 import ItemDetailPage from '../pages/items/ItemDetailPage';
 import { ProfilePage } from '../pages/profile';
+import { InboxPage } from '../pages/messaging/InboxPage';
+import { ChatPage } from '../pages/messaging/ChatPage';
 
 /**
  * Main application router following Single Responsibility Principle
@@ -53,31 +55,41 @@ export const AppRouter: React.FC = () => {
         }
       />
       
+      {/* Protected Messaging Routes - User must be authenticated */}
+      <Route
+        path="/inbox"
+        element={
+          <ProtectedRoute>
+            <InboxPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/inbox/:conversationId"
+        element={
+          <ProtectedRoute>
+            <ChatPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Messages route alias - redirects to inbox */}
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/inbox" replace />
+          </ProtectedRoute>
+        }
+      />
+      
       {/* Protected Dashboard and Profile Routes */}
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
             <HomePage />
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
-        path="/messages"
-        element={
-          <ProtectedRoute>
-            <HomePage />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Inbox route alias - redirects to messages */}
-      <Route
-        path="/inbox"
-        element={
-          <ProtectedRoute>
-            <Navigate to="/messages" replace />
           </ProtectedRoute>
         }
       />
