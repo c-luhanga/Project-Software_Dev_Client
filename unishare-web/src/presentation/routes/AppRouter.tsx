@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
+import AdminRoute from './AdminRoute';
 import { AppLayout } from '../layout/AppLayout';
 import { LoginPage, RegisterPage } from '../pages/auth';
 import HomePage from '../pages/home/HomePage';
@@ -10,6 +11,7 @@ import ItemDetailPage from '../pages/items/ItemDetailPage';
 import { ProfilePage } from '../pages/profile';
 import { InboxPage } from '../pages/messaging/InboxPage';
 import { ChatPage } from '../pages/messaging/ChatPage';
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 
 /**
  * Main application router following Single Responsibility Principle
@@ -116,6 +118,31 @@ export const AppRouter: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        
+        {/* Admin Routes - Protected by Authentication AND Admin Role */}
+        <Route
+          path="admin/*"
+          element={
+            <ProtectedRoute>
+              <AdminRoute />
+            </ProtectedRoute>
+          }
+        >
+          {/* Admin Dashboard - Main admin landing page */}
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="dashboard" element={<AdminDashboardPage />} />
+          
+          {/* User Management - Future admin feature */}
+          <Route 
+            path="users" 
+            element={
+              <div style={{ padding: '2rem' }}>
+                <h2>User Management</h2>
+                <p>User management interface will be implemented here.</p>
+              </div>
+            } 
+          />
+        </Route>
         
         {/* Legacy auth routes - redirect to simplified paths */}
         <Route path="auth/login" element={<Navigate to="/login" replace />} />

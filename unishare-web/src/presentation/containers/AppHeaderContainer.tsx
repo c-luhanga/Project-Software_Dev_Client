@@ -17,7 +17,7 @@ import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../../store/store';
-import { logoutThunk } from '../../store/authSlice';
+import { logoutThunk, selectIsAdmin } from '../../store/authSlice';
 import { AppBarShell } from '../components/shell/AppBarShell';
 
 /**
@@ -65,6 +65,9 @@ export const AppHeaderContainer: React.FC = () => {
       profileImageUrl: user.profileImageUrl
     };
   });
+
+  // Select admin status
+  const isAdmin = useSelector(selectIsAdmin);
 
   // Calculate unread message count from messaging state
   const unreadCount = useSelector((state: RootState) => {
@@ -123,6 +126,13 @@ export const AppHeaderContainer: React.FC = () => {
   };
 
   /**
+   * Navigation handler: Go to admin panel
+   */
+  const handleOpenAdmin = () => {
+    navigate('/admin');
+  };
+
+  /**
    * Authentication handler: Logout user and redirect to login
    * Uses Redux thunk for logout action, then navigates to login page
    */
@@ -145,12 +155,14 @@ export const AppHeaderContainer: React.FC = () => {
       isAuthenticated={isAuthenticated}
       profile={profile}
       unreadCount={unreadCount > 0 ? unreadCount : undefined}
+      isAdmin={isAdmin}
       onGoHome={handleGoHome}
       onGoSell={handleGoSell}
       onGoLogin={handleGoLogin}
       onGoRegister={handleGoRegister}
       onOpenProfile={handleOpenProfile}
       onOpenInbox={handleOpenInbox}
+      onOpenAdmin={handleOpenAdmin}
       onLogout={handleLogout}
     />
   );

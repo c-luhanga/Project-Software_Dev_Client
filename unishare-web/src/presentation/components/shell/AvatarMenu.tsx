@@ -27,7 +27,8 @@ import {
 import {
   Person as PersonIcon,
   Inbox as InboxIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  AdminPanelSettings as AdminIcon
 } from '@mui/icons-material';
 import { getUserInitials } from '../../../utils/userInitials';
 
@@ -52,11 +53,17 @@ export interface AvatarMenuProps {
   /** Number of unread messages (hidden if 0 or undefined) */
   readonly unreadCount?: number;
   
+  /** Whether user has admin privileges (shows admin menu item) */
+  readonly isAdmin?: boolean;
+  
   /** Callback when user wants to open their profile */
   readonly onOpenProfile: () => void;
   
   /** Callback when user wants to open their inbox */
   readonly onOpenInbox: () => void;
+  
+  /** Callback when user wants to open admin panel */
+  readonly onOpenAdmin?: () => void;
   
   /** Callback when user wants to logout */
   readonly onLogout: () => void;
@@ -85,8 +92,10 @@ export interface AvatarMenuProps {
 export const AvatarMenu: React.FC<AvatarMenuProps> = ({
   profile,
   unreadCount,
+  isAdmin,
   onOpenProfile,
   onOpenInbox,
+  onOpenAdmin,
   onLogout
 }) => {
   const theme = useTheme();
@@ -169,6 +178,11 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
     handleMenuClose();
     onOpenInbox();
   }, [handleMenuClose, onOpenInbox]);
+
+  const handleAdminClick = useCallback(() => {
+    handleMenuClose();
+    onOpenAdmin?.();
+  }, [handleMenuClose, onOpenAdmin]);
 
   const handleLogoutClick = useCallback(() => {
     handleMenuClose();
@@ -365,6 +379,35 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           </ListItemIcon>
           <ListItemText primary="Inbox" />
         </MenuItem>
+
+        {/* Admin Panel - Only show for admin users */}
+        {isAdmin && (
+          <MenuItem
+            onClick={handleAdminClick}
+            role="menuitem"
+            aria-label="Open admin panel"
+            title="Access administration tools"
+            sx={{
+              color: theme.palette.warning.main,
+              '&:hover': {
+                backgroundColor: theme.palette.warning.light + '20'
+              },
+              '&:focus': {
+                outline: `2px solid ${theme.palette.warning.main}`,
+                outlineOffset: '-2px',
+                backgroundColor: theme.palette.warning.light + '10'
+              }
+            }}
+          >
+            <ListItemIcon>
+              <AdminIcon
+                fontSize="small"
+                sx={{ color: theme.palette.warning.main }}
+              />
+            </ListItemIcon>
+            <ListItemText primary="Admin Panel" />
+          </MenuItem>
+        )}
 
         <MenuItem
           onClick={handleLogoutClick}

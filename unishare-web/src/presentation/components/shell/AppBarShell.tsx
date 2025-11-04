@@ -46,6 +46,9 @@ export interface AppBarShellProps {
   /** Number of unread messages (only when authenticated) */
   readonly unreadCount?: number;
   
+  /** Whether user has admin privileges (only when authenticated) */
+  readonly isAdmin?: boolean;
+  
   /** Callback when user clicks the logo/home */
   readonly onGoHome: () => void;
   
@@ -63,6 +66,9 @@ export interface AppBarShellProps {
   
   /** Callback when user wants to open their inbox */
   readonly onOpenInbox: () => void;
+  
+  /** Callback when user wants to open admin panel */
+  readonly onOpenAdmin?: () => void;
   
   /** Callback when user wants to logout */
   readonly onLogout: () => void;
@@ -153,12 +159,14 @@ export const AppBarShell: React.FC<AppBarShellProps> = ({
   isAuthenticated,
   profile,
   unreadCount,
+  isAdmin,
   onGoHome,
   onGoSell,
   onGoLogin,
   onGoRegister,
   onOpenProfile,
   onOpenInbox,
+  onOpenAdmin,
   onLogout
 }) => {
   const theme = useTheme();
@@ -247,8 +255,10 @@ export const AppBarShell: React.FC<AppBarShellProps> = ({
       <AvatarMenu
         profile={profile}
         unreadCount={unreadCount}
+        isAdmin={isAdmin}
         onOpenProfile={onOpenProfile}
         onOpenInbox={onOpenInbox}
+        onOpenAdmin={onOpenAdmin}
         onLogout={onLogout}
       />
     </ActionsContainer>
