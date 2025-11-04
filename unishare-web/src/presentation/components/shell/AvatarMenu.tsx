@@ -213,12 +213,18 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
     >
       <Avatar
         src={profile?.profileImageUrl}
-        alt={`${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || 'User avatar'}
+        alt={profile?.profileImageUrl ? 
+          `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || 'User avatar' :
+          `User avatar${avatarInitials ? ` with initials ${avatarInitials}` : ''}`
+        }
         sx={{
           width: 40,
           height: 40,
           fontSize: '1rem',
-          fontWeight: 600
+          fontWeight: 600,
+          backgroundColor: !profile?.profileImageUrl ? theme.palette.primary.main : undefined,
+          color: !profile?.profileImageUrl ? theme.palette.primary.contrastText : undefined,
+          border: !profile?.profileImageUrl ? `2px solid ${theme.palette.primary.dark}` : undefined
         }}
       >
         {!profile?.profileImageUrl && avatarInitials}
@@ -227,12 +233,18 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
   ) : (
     <Avatar
       src={profile?.profileImageUrl}
-      alt={`${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || 'User avatar'}
+      alt={profile?.profileImageUrl ? 
+        `${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || 'User avatar' :
+        `User avatar${avatarInitials ? ` with initials ${avatarInitials}` : ''}`
+      }
       sx={{
         width: 40,
         height: 40,
         fontSize: '1rem',
-        fontWeight: 600
+        fontWeight: 600,
+        backgroundColor: !profile?.profileImageUrl ? theme.palette.primary.main : undefined,
+        color: !profile?.profileImageUrl ? theme.palette.primary.contrastText : undefined,
+        border: !profile?.profileImageUrl ? `2px solid ${theme.palette.primary.dark}` : undefined
       }}
     >
       {!profile?.profileImageUrl && avatarInitials}
@@ -252,7 +264,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           onMouseLeave={handleMouseLeave}
           onKeyDown={handleKeyDown}
           data-testid="avatar-menu-button"
-          aria-label="Account menu"
+          aria-label={profile?.profileImageUrl ? "Account menu" : "User menu"}
           aria-controls={isMenuOpen ? 'avatar-menu' : undefined}
           aria-haspopup="true"
           aria-expanded={isMenuOpen}
@@ -261,6 +273,10 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
             transition: 'transform 0.2s ease-in-out',
             '&:hover': {
               transform: 'scale(1.05)'
+            },
+            '&:focus': {
+              outline: `2px solid ${theme.palette.primary.main}`,
+              outlineOffset: '2px'
             }
           }}
         >
@@ -295,8 +311,17 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
                 borderRadius: 1,
                 mx: 0.5,
                 mb: 0.5,
+                transition: 'background-color 0.2s ease-in-out',
                 '&:last-child': {
                   mb: 0
+                },
+                '&:focus': {
+                  outline: `2px solid ${theme.palette.primary.main}`,
+                  outlineOffset: '-2px',
+                  backgroundColor: theme.palette.action.focus
+                },
+                '&:hover': {
+                  backgroundColor: theme.palette.action.hover
                 }
               }
             }
@@ -307,6 +332,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           onClick={handleProfileClick}
           role="menuitem"
           aria-label="View profile"
+          title="View your profile page"
         >
           <ListItemIcon>
             <PersonIcon fontSize="small" />
@@ -318,6 +344,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           onClick={handleInboxClick}
           role="menuitem"
           aria-label={`View inbox${showBadge ? ` (${unreadCount} unread)` : ''}`}
+          title={`View your inbox${showBadge ? ` - ${unreadCount} unread message${unreadCount === 1 ? '' : 's'}` : ''}`}
         >
           <ListItemIcon>
             <Badge
@@ -343,10 +370,16 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           onClick={handleLogoutClick}
           role="menuitem"
           aria-label="Logout"
+          title="Sign out of your account"
           sx={{
             color: theme.palette.error.main,
             '&:hover': {
               backgroundColor: theme.palette.error.light + '20'
+            },
+            '&:focus': {
+              outline: `2px solid ${theme.palette.error.main}`,
+              outlineOffset: '-2px',
+              backgroundColor: theme.palette.error.light + '10'
             }
           }}
         >
