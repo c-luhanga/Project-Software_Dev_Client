@@ -8,11 +8,6 @@ import {
   Box,
   Snackbar,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   CircularProgress
 } from '@mui/material';
 import type { AppDispatch } from '../../../store/store';
@@ -24,6 +19,7 @@ import {
 } from '../../../store/itemsSlice';
 import type { CreateItemCommand } from '../../../domain/items/contracts';
 import SellItemForm from '../../components/items/SellItemForm';
+import AddImagesDialog from '../../components/items/AddImagesDialog';
 
 /**
  * Sell Item Page Container Component
@@ -56,7 +52,6 @@ const SellItemPage: React.FC = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [showImageUploadDialog, setShowImageUploadDialog] = useState(false);
   const [createdItemId, setCreatedItemId] = useState<number | null>(null);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
 
   /**
    * Handle form submission
@@ -86,18 +81,15 @@ const SellItemPage: React.FC = () => {
   };
 
   /**
-   * Handle image upload confirmation
+   * Handle image upload confirmation from dialog
    */
-  const handleImageUpload = async () => {
-    if (!createdItemId || imageFiles.length === 0) {
+  const handleImageUpload = async (imageUrls: string[]) => {
+    if (!createdItemId || imageUrls.length === 0) {
       handleNavigateToItem();
       return;
     }
 
     try {
-      // Convert files to URLs (in real app, upload to storage first)
-      const imageUrls = imageFiles.map(file => URL.createObjectURL(file));
-      
       const result = await dispatch(addItemImagesThunk({
         itemId: createdItemId,
         imageUrls
@@ -137,15 +129,8 @@ const SellItemPage: React.FC = () => {
    * Skip image upload and navigate directly
    */
   const handleSkipImages = () => {
+    setShowImageUploadDialog(false);
     handleNavigateToItem();
-  };
-
-  /**
-   * Handle file selection for image upload
-   */
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setImageFiles(files);
   };
 
   /**
@@ -204,47 +189,12 @@ const SellItemPage: React.FC = () => {
       </Paper>
 
       {/* Image Upload Dialog */}
-      <Dialog
+      <AddImagesDialog
         open={showImageUploadDialog}
         onClose={handleSkipImages}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Add Photos (Optional)
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Would you like to add photos to your listing? Photos help buyers see your item better.
-          </Typography>
-          
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileSelect}
-            style={{ width: '100%', marginBottom: '16px' }}
-          />
-          
-          {imageFiles.length > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              {imageFiles.length} file(s) selected
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleSkipImages} color="inherit">
-            Skip Photos
-          </Button>
-          <Button 
-            onClick={handleImageUpload} 
-            variant="contained"
-            disabled={imageFiles.length === 0}
-          >
-            Upload Photos
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleImageUpload}
+        maxCount={4}
+      />
 
       {/* Success/Error Snackbar */}
       <Snackbar
