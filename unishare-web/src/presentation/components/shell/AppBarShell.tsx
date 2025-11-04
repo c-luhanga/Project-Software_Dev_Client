@@ -18,8 +18,6 @@ import {
   Typography,
   Button,
   Box,
-  TextField,
-  InputAdornment,
   useTheme,
   useMediaQuery,
   styled,
@@ -27,10 +25,10 @@ import {
   Tooltip
 } from '@mui/material';
 import {
-  Search as SearchIcon,
   Add as AddIcon
 } from '@mui/icons-material';
 import { AvatarMenu, type UserProfile } from './AvatarMenu';
+import { SearchBarContainer } from '../../containers/SearchBarContainer';
 
 /**
  * App bar component props
@@ -83,24 +81,25 @@ const LogoButton = styled(Button)(({ theme }) => ({
   fontWeight: 700,
   color: 'inherit',
   padding: theme.spacing(1, 2),
+  flexShrink: 0,
   '&:hover': {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   }
 }));
 
-const SearchContainer = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  maxWidth: 600,
-  margin: theme.spacing(0, 2),
-  [theme.breakpoints.down('md')]: {
-    display: 'none'
-  }
-}));
+const ToolbarContent = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  gap: 8
+});
 
 const ActionsContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(1),
+  marginLeft: 'auto', // Push to the right
+  flexShrink: 0,
   [theme.breakpoints.down('sm')]: {
     gap: theme.spacing(0.5)
   }
@@ -264,51 +263,6 @@ export const AppBarShell: React.FC<AppBarShellProps> = ({
     </ActionsContainer>
   );
 
-  /**
-   * Render search input (placeholder for future implementation)
-   * Hidden on mobile to save space
-   */
-  const renderSearchInput = () => (
-    <SearchContainer>
-      <TextField
-        placeholder="Search items..."
-        variant="outlined"
-        size="small"
-        fullWidth
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
-            </InputAdornment>
-          ),
-          readOnly: true,
-          sx: {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: 2,
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255, 255, 255, 0.3)'
-            },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255, 255, 255, 0.5)'
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255, 255, 255, 0.7)'
-            },
-            '& input': {
-              color: 'white',
-              '&::placeholder': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                opacity: 1
-              }
-            }
-          }
-        }}
-        aria-label="Search items (coming soon)"
-        title="Search functionality coming soon"
-      />
-    </SearchContainer>
-  );
-
   return (
     <AppBar 
       position="sticky" 
@@ -324,32 +278,34 @@ export const AppBarShell: React.FC<AppBarShellProps> = ({
           px: { xs: 1, sm: 2 }
         }}
       >
-        {/* Logo/Brand Section */}
-        <LogoButton
-          onClick={onGoHome}
-          aria-label="Go to UniShare homepage"
-          disableRipple
-        >
-          <Typography
-            variant="h6"
-            component="span"
-            sx={{
-              fontWeight: 700,
-              background: 'linear-gradient(45deg, #ffffff 30%, #e3f2fd 90%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}
+        <ToolbarContent>
+          {/* Logo/Brand Section */}
+          <LogoButton
+            onClick={onGoHome}
+            aria-label="Go to UniShare homepage"
+            disableRipple
           >
-            UniShare
-          </Typography>
-        </LogoButton>
+            <Typography
+              variant="h6"
+              component="span"
+              sx={{
+                fontWeight: 700,
+                background: 'linear-gradient(45deg, #ffffff 30%, #e3f2fd 90%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
+              UniShare
+            </Typography>
+          </LogoButton>
 
-        {/* Search Section (hidden on mobile) */}
-        {renderSearchInput()}
+          {/* Search Section with category filter */}
+          <SearchBarContainer />
 
-        {/* Actions Section */}
-        {isAuthenticated ? renderAuthenticatedActions() : renderUnauthenticatedActions()}
+          {/* Actions Section - Always on the right */}
+          {isAuthenticated ? renderAuthenticatedActions() : renderUnauthenticatedActions()}
+        </ToolbarContent>
       </Toolbar>
     </AppBar>
   );

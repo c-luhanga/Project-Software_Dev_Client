@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -9,21 +9,13 @@ import {
   CardMedia,
   CardContent,
   CardActionArea,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Pagination,
   CircularProgress,
   Alert,
-  Chip,
-  Stack,
-  InputAdornment
+  Chip
 } from '@mui/material';
 import {
-  Search as SearchIcon,
-  Category as CategoryIcon
+  Search as SearchIcon
 } from '@mui/icons-material';
 import type { AppDispatch } from '../../../store/store';
 import {
@@ -62,51 +54,17 @@ const HomePage: React.FC = () => {
   const isLoading = useSelector(selectIsItemsLoading);
   const error = useSelector(selectItemsError);
   
-  // Local search state (for controlled inputs)
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('0');
-  const [currentPage, setCurrentPage] = useState(1);
-  
   // Constants
   const PAGE_SIZE = 12;
-  const CATEGORIES = [
-    { id: '0', label: 'All Categories' },
-    { id: '1', label: 'Electronics' },
-    { id: '2', label: 'Books' },
-    { id: '3', label: 'Clothing' },
-    { id: '4', label: 'Furniture' },
-    { id: '5', label: 'Sports & Recreation' },
-    { id: '6', label: 'Other' }
-  ];
 
   /**
-   * Initialize state from URL parameters
+   * Perform search with URL parameters
    */
-  useEffect(() => {
-    const q = searchParams.get('q') || '';
-    const categoryId = searchParams.get('categoryId') || '0';
+  const performSearch = useCallback(() => {
+    const query = searchParams.get('q') || '';
+    const categoryId = searchParams.get('categoryId') || '';
     const page = parseInt(searchParams.get('page') || '1');
     
-    setSearchQuery(q);
-    setSelectedCategory(categoryId);
-    setCurrentPage(page);
-  }, [searchParams]);
-
-  /**
-   * Perform search with current parameters
-   */
-  const performSearch = useCallback((
-    query: string = searchQuery,
-    categoryId: string = selectedCategory,
-    page: number = currentPage
-  ) => {
-    // Update URL query parameters
-    const newSearchParams = new URLSearchParams();
-    if (query) newSearchParams.set('q', query);
-    if (categoryId && categoryId !== '0') newSearchParams.set('categoryId', categoryId);
-    if (page > 1) newSearchParams.set('page', page.toString());
-    setSearchParams(newSearchParams);
-
     // Dispatch search thunk
     dispatch(searchItemsThunk({
       query: query || undefined,
@@ -114,42 +72,23 @@ const HomePage: React.FC = () => {
       page,
       pageSize: PAGE_SIZE
     }));
-  }, [searchQuery, selectedCategory, currentPage, dispatch, setSearchParams]);
+  }, [searchParams, dispatch]);
 
   /**
-   * Load initial data on component mount
+   * Load initial data on component mount and when search params change
    */
   useEffect(() => {
     dispatch(clearError());
     performSearch();
-  }, [dispatch]); // Only run on mount
-
-  /**
-   * Handle search query change
-   */
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newQuery = event.target.value;
-    setSearchQuery(newQuery);
-    setCurrentPage(1); // Reset to first page
-    performSearch(newQuery, selectedCategory, 1);
-  };
-
-  /**
-   * Handle category filter change
-   */
-  const handleCategoryChange = (event: any) => {
-    const newCategory = event.target.value as string;
-    setSelectedCategory(newCategory);
-    setCurrentPage(1); // Reset to first page
-    performSearch(searchQuery, newCategory, 1);
-  };
+  }, [dispatch, performSearch]);
 
   /**
    * Handle page change
    */
   const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
-    setCurrentPage(page);
-    performSearch(searchQuery, selectedCategory, page);
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('page', page.toString());
+    setSearchParams(newSearchParams);
   };
 
   /**
@@ -199,49 +138,6 @@ const HomePage: React.FC = () => {
         <Typography variant="body1" color="text.secondary">
           Find great deals from fellow students
         </Typography>
-      </Box>
-
-      {/* Search and Filters */}
-      <Box sx={{ mb: 4 }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-          {/* Search Input */}
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Search for items..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ maxWidth: { md: 400 } }}
-          />
-
-          {/* Category Filter */}
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={selectedCategory}
-              onChange={handleCategoryChange}
-              label="Category"
-              startAdornment={
-                <InputAdornment position="start">
-                  <CategoryIcon />
-                </InputAdornment>
-              }
-            >
-              {CATEGORIES.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
       </Box>
 
       {/* Loading State */}
@@ -338,7 +234,7 @@ const HomePage: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
               <Pagination
                 count={metadata.totalPages}
-                page={currentPage}
+                page={parseInt(searchParams.get('page') || '1')}
                 onChange={handlePageChange}
                 color="primary"
                 size="large"
@@ -365,7 +261,7 @@ const HomePage: React.FC = () => {
             No items found
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {searchQuery || (selectedCategory && selectedCategory !== '0')
+            {(searchParams.get('q') || searchParams.get('categoryId'))
               ? 'Try adjusting your search criteria or browse all items'
               : 'Be the first to list an item for sale!'
             }
