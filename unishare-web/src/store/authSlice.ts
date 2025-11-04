@@ -378,6 +378,8 @@ export const selectIsLoading = (state: { auth: AuthState }) =>
   state.auth.status === 'loading';
 export const selectIsAdmin = (state: { auth: AuthState }) => 
   Boolean(state.auth.user?.isAdmin);
+export const selectUserId = (state: { auth: AuthState }) => 
+  state.auth.user?.userId;
 
 /*
  * Enhanced Auth Slice Architecture (SRP + OCP + DIP):
