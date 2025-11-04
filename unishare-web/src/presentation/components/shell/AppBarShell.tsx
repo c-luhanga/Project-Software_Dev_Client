@@ -22,7 +22,9 @@ import {
   InputAdornment,
   useTheme,
   useMediaQuery,
-  styled
+  styled,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -195,26 +197,52 @@ export const AppBarShell: React.FC<AppBarShellProps> = ({
 
   /**
    * Render authenticated user actions
-   * Shows Sell Item button and Avatar Menu
+   * Shows prominent Sell Item button (icon on mobile) and Avatar Menu
    */
   const renderAuthenticatedActions = () => (
     <ActionsContainer>
-      <SellButton
-        variant="contained"
-        color="secondary"
-        startIcon={<AddIcon />}
-        onClick={onGoSell}
-        aria-label="Sell a new item"
-        sx={{
-          backgroundColor: theme.palette.secondary.main,
-          color: theme.palette.secondary.contrastText,
-          '&:hover': {
-            backgroundColor: theme.palette.secondary.dark
-          }
-        }}
-      >
-        {isMobile ? 'Sell' : 'Sell Item'}
-      </SellButton>
+      {/* Sell Item Button - Prominent action for authenticated users */}
+      {isMobile ? (
+        // Mobile: Icon button with tooltip
+        <Tooltip title="Sell Item" arrow placement="bottom">
+          <IconButton
+            color="secondary"
+            onClick={onGoSell}
+            aria-label="Sell a new item"
+            sx={{
+              backgroundColor: theme.palette.secondary.main,
+              color: theme.palette.secondary.contrastText,
+              '&:hover': {
+                backgroundColor: theme.palette.secondary.dark
+              },
+              width: 40,
+              height: 40
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        // Desktop: Full button with text and icon
+        <SellButton
+          variant="contained"
+          color="secondary"
+          startIcon={<AddIcon />}
+          onClick={onGoSell}
+          aria-label="Sell a new item"
+          sx={{
+            backgroundColor: theme.palette.secondary.main,
+            color: theme.palette.secondary.contrastText,
+            boxShadow: 2,
+            '&:hover': {
+              backgroundColor: theme.palette.secondary.dark,
+              boxShadow: 3
+            }
+          }}
+        >
+          Sell Item
+        </SellButton>
+      )}
       
       <AvatarMenu
         profile={profile}
