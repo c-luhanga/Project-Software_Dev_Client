@@ -4,6 +4,7 @@ import { container } from '../core/container';
 import authReducer from './authSlice';
 import profileReducer from './profileSlice';
 import itemsReducer from './itemsSlice';
+import messagingReducer from './messagingSlice';
 
 /**
  * Extra argument interface for thunk middleware
@@ -22,8 +23,7 @@ export const store = configureStore({
     auth: authReducer,
     profile: profileReducer,
     items: itemsReducer,
-    // TODO: Add additional feature slices here
-    // messages: messagesSlice.reducer,
+    messaging: messagingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
