@@ -15,6 +15,7 @@ import { ItemsRepository } from '../infrastructure/items/itemsRepository';
 import { ItemsService } from '../domain/items/itemsService';
 import { MessagingRepository } from '../infrastructure/messaging/messagingRepository';
 import { MessagingService } from '../domain/messaging/messagingService';
+import { AdminRepository } from '../infrastructure/repositories/AdminRepository';
 import * as tokenStorage from '../utils/tokenStorage';
 
 /**
@@ -34,6 +35,7 @@ class DIContainer {
   private readonly _itemsService: IItemsService;
   private readonly _messagingRepository: IMessagingRepository;
   private readonly _messagingService: IMessagingService;
+  private readonly _adminRepository: AdminRepository;
 
   constructor() {
     // Create token storage adapter for API client
@@ -79,6 +81,9 @@ class DIContainer {
 
     // Create messaging service with messaging repository dependency
     this._messagingService = new MessagingService(this._messagingRepository);
+
+    // Create admin repository with API client dependency
+    this._adminRepository = new AdminRepository(this._apiClient);
   }
 
   /**
@@ -159,6 +164,13 @@ class DIContainer {
   }
 
   /**
+   * Get admin repository instance
+   */
+  get adminRepository(): AdminRepository {
+    return this._adminRepository;
+  }
+
+  /**
    * Creates a token manager that delegates to the API client
    * This ensures token synchronization between service layer and HTTP layer
    */
@@ -202,3 +214,4 @@ export const getItemsRepository = (): IItemsRepository => container.itemsReposit
 export const getItemsService = (): IItemsService => container.itemsService;
 export const getMessagingRepository = (): IMessagingRepository => container.messagingRepository;
 export const getMessagingService = (): IMessagingService => container.messagingService;
+export const getAdminRepository = (): AdminRepository => container.adminRepository;

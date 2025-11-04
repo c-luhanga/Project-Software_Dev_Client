@@ -35,7 +35,15 @@ import {
   selectItemsError
 } from '../../../store/itemsSlice';
 import { selectAuthUser } from '../../../store/authSlice';
-import { canEditItem, canMarkSold } from '../../../domain/auth/permissions';
+import { canEditItem, canMarkSold, canModerate } from '../../../domain/auth/permissions';
+import {
+  adminDeleteItemThunk,
+  adminBanUserThunk,
+  clearAdminError,
+  selectAdminIsLoading,
+  selectAdminError
+} from '../../../store/adminSlice';
+import AdminActions from '../../components/admin/AdminActions';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemDetailActionsContainer } from '../../components/items/ItemDetailActionsContainer';
 import { getStatusLabel, getStatusColor, isItemSold } from '../../../utils/itemStatus';
@@ -63,6 +71,8 @@ const ItemDetailPage: React.FC = () => {
   const isLoading = useSelector(selectIsItemsLoading);
   const error = useSelector(selectItemsError);
   const currentUser = useSelector(selectAuthUser);
+  const adminIsLoading = useSelector(selectAdminIsLoading);
+  const adminError = useSelector(selectAdminError);
   
   // Local UI state
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -167,6 +177,71 @@ const ItemDetailPage: React.FC = () => {
   };
 
   /**
+   * Handle admin delete item action
+   */
+  const handleAdminDeleteItem = async () => {
+    if (!currentItem) return;
+
+    // Confirm action with user
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${currentItem.title}"? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      const result = await dispatch(adminDeleteItemThunk(currentItem.itemId));
+
+      if (adminDeleteItemThunk.fulfilled.match(result)) {
+        setSnackbarMessage('Item deleted successfully!');
+        setSnackbarSeverity('success');
+        setShowSnackbar(true);
+        
+        // Navigate back to items list after successful deletion
+        setTimeout(() => {
+          navigate('/items');
+        }, 2000);
+      } else if (adminDeleteItemThunk.rejected.match(result)) {
+        throw new Error(result.error.message || 'Failed to delete item');
+      }
+    } catch (error) {
+      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to delete item');
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
+  };
+
+  /**
+   * Handle admin ban user action
+   */
+  const handleAdminBanUser = async (userId: number) => {
+    if (!currentItem) return;
+
+    // Confirm action with user
+    const confirmed = window.confirm(
+      `Are you sure you want to ban this user? They will lose access to the platform.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      const result = await dispatch(adminBanUserThunk(userId));
+
+      if (adminBanUserThunk.fulfilled.match(result)) {
+        setSnackbarMessage('User banned successfully!');
+        setSnackbarSeverity('success');
+        setShowSnackbar(true);
+      } else if (adminBanUserThunk.rejected.match(result)) {
+        throw new Error(result.error.message || 'Failed to ban user');
+      }
+    } catch (error) {
+      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to ban user');
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
+  };
+
+  /**
    * Handle back navigation
    */
   const handleBack = () => {
@@ -189,11 +264,12 @@ const ItemDetailPage: React.FC = () => {
   };
 
   /**
-   * Close snackbar
+   * Close snackbar and clear both item and admin errors
    */
   const handleCloseSnackbar = () => {
     setShowSnackbar(false);
     dispatch(clearError());
+    dispatch(clearAdminError());
   };
 
   /**
@@ -230,7 +306,8 @@ const ItemDetailPage: React.FC = () => {
       return {
         canEdit: false,
         canMarkSold: false,
-        canViewActions: false
+        canViewActions: false,
+        canModerateContent: false
       };
     }
 
@@ -248,7 +325,8 @@ const ItemDetailPage: React.FC = () => {
     return {
       canEdit: canEditItem(userProfile, itemDetail),
       canMarkSold: canMarkSold(userProfile, itemDetail),
-      canViewActions: canEditItem(userProfile, itemDetail) // Same as canEdit for now
+      canViewActions: canEditItem(userProfile, itemDetail), // Same as canEdit for now
+      canModerateContent: canModerate(userProfile)
     };
   }, [currentUser, currentItem]);
 
@@ -257,7 +335,18 @@ const ItemDetailPage: React.FC = () => {
    */
   const isSold = currentItem ? isItemSold(currentItem.statusId) : false;
 
-  if (isLoading) {
+  /**
+   * Show admin error in snackbar if it exists
+   */
+  React.useEffect(() => {
+    if (adminError) {
+      setSnackbarMessage(adminError);
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
+  }, [adminError]);
+
+  if (isLoading || adminIsLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
@@ -265,11 +354,11 @@ const ItemDetailPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error || adminError) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">
-          Failed to load item: {error}
+          Failed to load item: {error || adminError}
         </Alert>
       </Container>
     );
@@ -519,6 +608,18 @@ const ItemDetailPage: React.FC = () => {
                       {isSold ? 'Sold' : 'Mark as Sold'}
                     </Button>
                   </Stack>
+                </Box>
+              )}
+
+              {/* Admin Moderation Actions */}
+              {userPermissions.canModerateContent && (
+                <Box sx={{ mt: 3 }}>
+                  <AdminActions
+                    onDeleteItem={handleAdminDeleteItem}
+                    onBanUser={handleAdminBanUser}
+                    userId={currentItem.sellerId}
+                    disabled={adminIsLoading}
+                  />
                 </Box>
               )}
             </Box>

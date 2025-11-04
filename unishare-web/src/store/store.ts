@@ -5,6 +5,7 @@ import authReducer from './authSlice';
 import profileReducer from './profileSlice';
 import itemsReducer from './itemsSlice';
 import messagingReducer from './messagingSlice';
+import adminReducer from './adminSlice';
 
 /**
  * Extra argument interface for thunk middleware
@@ -24,6 +25,7 @@ export const store = configureStore({
     profile: profileReducer,
     items: itemsReducer,
     messaging: messagingReducer,
+    admin: adminReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
