@@ -1,5 +1,6 @@
 import type { IApiClient } from '../http/IApiClient';
 import { AdminRepository, createAdminRepository } from './adminRepository';
+import type { IAdminRepository } from '../../domain/admin/contracts';
 
 /**
  * Example usage and testing scenarios for AdminRepository
@@ -11,7 +12,7 @@ import { AdminRepository, createAdminRepository } from './adminRepository';
 /**
  * Production usage example
  */
-export function createProductionAdminRepository(): AdminRepository {
+export function createProductionAdminRepository(): IAdminRepository {
   // In a real application, this would come from the DI container
   const apiClient: IApiClient = {
     get: async () => { throw new Error('Not implemented'); },
@@ -189,9 +190,9 @@ export class AdminRepositoryTestScenarios {
  * Example integration with domain service
  */
 export class AdminService {
-  private readonly adminRepository: AdminRepository;
+  private readonly adminRepository: IAdminRepository;
 
-  constructor(adminRepository: AdminRepository) {
+  constructor(adminRepository: IAdminRepository) {
     this.adminRepository = adminRepository;
   }
 

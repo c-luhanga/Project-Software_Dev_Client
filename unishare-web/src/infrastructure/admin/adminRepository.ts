@@ -1,4 +1,5 @@
 import type { IApiClient } from '../http/IApiClient';
+import type { IAdminRepository } from '../../domain/admin/contracts';
 
 /**
  * Admin Repository - Infrastructure Layer
@@ -32,7 +33,7 @@ import type { IApiClient } from '../http/IApiClient';
  * - Easy to mock and test
  * - Clear separation of concerns
  */
-export class AdminRepository {
+export class AdminRepository implements IAdminRepository {
   private readonly apiClient: IApiClient;
 
   /**
@@ -177,7 +178,7 @@ export class AdminRepository {
  * const adminRepo = createAdminRepository(mockClient);
  * ```
  */
-export function createAdminRepository(apiClient: IApiClient): AdminRepository {
+export function createAdminRepository(apiClient: IApiClient): IAdminRepository {
   return new AdminRepository(apiClient);
 }
 
