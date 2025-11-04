@@ -4,6 +4,7 @@ import type { IAuthService, IAuthValidator, ITokenManager } from '../domain/auth
 import type { IUserRepository, IUserService } from '../domain/user/contracts';
 import type { IItemsRepository, IItemsService } from '../domain/items/contracts';
 import type { IMessagingRepository, IMessagingService } from '../domain/messaging/contracts';
+import type { IAdminRepository, IAdminService } from '../domain/admin/contracts';
 
 import { AxiosApiClient } from '../infrastructure/http/axiosClient';
 import { AuthRepository } from '../infrastructure/auth/authRepository';
@@ -15,7 +16,8 @@ import { ItemsRepository } from '../infrastructure/items/itemsRepository';
 import { ItemsService } from '../domain/items/itemsService';
 import { MessagingRepository } from '../infrastructure/messaging/messagingRepository';
 import { MessagingService } from '../domain/messaging/messagingService';
-import { AdminRepository } from '../infrastructure/repositories/AdminRepository';
+import { AdminRepository } from '../infrastructure/admin/adminRepository';
+import { AdminService } from '../domain/admin/adminService';
 import * as tokenStorage from '../utils/tokenStorage';
 
 /**
@@ -35,7 +37,8 @@ class DIContainer {
   private readonly _itemsService: IItemsService;
   private readonly _messagingRepository: IMessagingRepository;
   private readonly _messagingService: IMessagingService;
-  private readonly _adminRepository: AdminRepository;
+  private readonly _adminRepository: IAdminRepository;
+  private readonly _adminService: IAdminService;
 
   constructor() {
     // Create token storage adapter for API client
@@ -84,6 +87,9 @@ class DIContainer {
 
     // Create admin repository with API client dependency
     this._adminRepository = new AdminRepository(this._apiClient);
+
+    // Create admin service with admin repository dependency
+    this._adminService = new AdminService(this._adminRepository);
   }
 
   /**
@@ -166,8 +172,15 @@ class DIContainer {
   /**
    * Get admin repository instance
    */
-  get adminRepository(): AdminRepository {
+  get adminRepository(): IAdminRepository {
     return this._adminRepository;
+  }
+
+  /**
+   * Get admin service instance
+   */
+  get adminService(): IAdminService {
+    return this._adminService;
   }
 
   /**
@@ -214,4 +227,5 @@ export const getItemsRepository = (): IItemsRepository => container.itemsReposit
 export const getItemsService = (): IItemsService => container.itemsService;
 export const getMessagingRepository = (): IMessagingRepository => container.messagingRepository;
 export const getMessagingService = (): IMessagingService => container.messagingService;
-export const getAdminRepository = (): AdminRepository => container.adminRepository;
+export const getAdminRepository = (): IAdminRepository => container.adminRepository;
+export const getAdminService = (): IAdminService => container.adminService;

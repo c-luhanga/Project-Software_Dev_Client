@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { container } from '../core/container';
-import type { AdminDeleteItemResponse, AdminBanUserResponse } from '../infrastructure/repositories/AdminRepository';
 
 /**
  * Admin Redux Slice - Handles administrative operations state
@@ -20,8 +19,8 @@ import type { AdminDeleteItemResponse, AdminBanUserResponse } from '../infrastru
 interface AdminState {
   isLoading: boolean;
   error: string | null;
-  lastDeletedItem: AdminDeleteItemResponse | null;
-  lastBannedUser: AdminBanUserResponse | null;
+  lastDeletedItem: { itemId: number } | null;
+  lastBannedUser: { userId: number } | null;
 }
 
 // Initial state
@@ -46,8 +45,8 @@ export const adminDeleteItemThunk = createAsyncThunk(
   async (itemId: number, { rejectWithValue }) => {
     try {
       const adminRepository = container.adminRepository;
-      const result = await adminRepository.deleteItem(itemId);
-      return result;
+      await adminRepository.deleteItem(itemId);
+      return { itemId };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete item';
       return rejectWithValue(message);
@@ -69,33 +68,10 @@ export const adminBanUserThunk = createAsyncThunk(
   async (userId: number, { rejectWithValue }) => {
     try {
       const adminRepository = container.adminRepository;
-      const result = await adminRepository.banUser(userId);
-      return result;
+      await adminRepository.banUser(userId);
+      return { userId };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to ban user';
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Admin Unban User Thunk
- * 
- * Dispatches user unban through AdminRepository.
- * Handles loading states and error propagation.
- * 
- * @param userId - ID of the user to unban
- * @returns Promise resolving to unban confirmation
- */
-export const adminUnbanUserThunk = createAsyncThunk(
-  'admin/unbanUser',
-  async (userId: number, { rejectWithValue }) => {
-    try {
-      const adminRepository = container.adminRepository;
-      const result = await adminRepository.unbanUser(userId);
-      return result;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to unban user';
       return rejectWithValue(message);
     }
   }
@@ -149,22 +125,6 @@ const adminSlice = createSlice({
       .addCase(adminBanUserThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string || 'Failed to ban user';
-      });
-
-    // Admin Unban User
-    builder
-      .addCase(adminUnbanUserThunk.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(adminUnbanUserThunk.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.lastBannedUser = action.payload;
-        state.error = null;
-      })
-      .addCase(adminUnbanUserThunk.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string || 'Failed to unban user';
       });
   },
 });
