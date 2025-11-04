@@ -81,6 +81,26 @@ const ItemDetailPage: React.FC = () => {
   const [showAddImagesDialog, setShowAddImagesDialog] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  /**
+   * Display snackbar with message
+   * Centralized feedback system following SRP
+   */
+  const showFeedback = (message: string, severity: 'success' | 'error' = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setShowSnackbar(true);
+  };
+
+  /**
+   * Handle navigation with feedback
+   * Provides consistent navigation experience
+   */
+  const navigateWithDelay = (path: string, delay: number = 2000) => {
+    setTimeout(() => {
+      navigate(path);
+    }, delay);
+  };
+
   // Constants
   const CONDITIONS = {
     1: 'New',
@@ -132,9 +152,7 @@ const ItemDetailPage: React.FC = () => {
       }));
 
       if (addItemImagesThunk.fulfilled.match(result)) {
-        setSnackbarMessage('Images added successfully!');
-        setSnackbarSeverity('success');
-        setShowSnackbar(true);
+        showFeedback('Images added successfully!');
         
         // Refresh the item to show updated images
         dispatch(getItemThunk(currentItem.itemId));
@@ -142,9 +160,8 @@ const ItemDetailPage: React.FC = () => {
         throw new Error(result.error.message || 'Failed to add images');
       }
     } catch (error) {
-      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to add images');
-      setSnackbarSeverity('error');
-      setShowSnackbar(true);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add images';
+      showFeedback(errorMessage, 'error');
     } finally {
       setShowAddImagesDialog(false);
     }
@@ -160,9 +177,7 @@ const ItemDetailPage: React.FC = () => {
       const result = await dispatch(markItemSoldThunk(currentItem.itemId));
 
       if (markItemSoldThunk.fulfilled.match(result)) {
-        setSnackbarMessage('Item marked as sold!');
-        setSnackbarSeverity('success');
-        setShowSnackbar(true);
+        showFeedback('Item marked as sold! Buyers will see this update.');
         
         // Refresh the item to show updated status
         dispatch(getItemThunk(currentItem.itemId));
@@ -170,9 +185,8 @@ const ItemDetailPage: React.FC = () => {
         throw new Error(result.error.message || 'Failed to mark item as sold');
       }
     } catch (error) {
-      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to mark item as sold');
-      setSnackbarSeverity('error');
-      setShowSnackbar(true);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to mark item as sold';
+      showFeedback(errorMessage, 'error');
     }
   };
 
@@ -184,7 +198,7 @@ const ItemDetailPage: React.FC = () => {
 
     // Confirm action with user
     const confirmed = window.confirm(
-      `Are you sure you want to permanently delete "${currentItem.title}"? This action cannot be undone.`
+      `⚠️ PERMANENT DELETE\n\nAre you sure you want to permanently delete "${currentItem.title}"?\n\n• This action cannot be undone\n• The item will be removed from all listings\n• Users will no longer be able to view or contact about this item\n\nClick OK to proceed with deletion.`
     );
     
     if (!confirmed) return;
@@ -193,21 +207,14 @@ const ItemDetailPage: React.FC = () => {
       const result = await dispatch(adminDeleteItemThunk(currentItem.itemId));
 
       if (adminDeleteItemThunk.fulfilled.match(result)) {
-        setSnackbarMessage('Item deleted successfully!');
-        setSnackbarSeverity('success');
-        setShowSnackbar(true);
-        
-        // Navigate back to items list after successful deletion
-        setTimeout(() => {
-          navigate('/items');
-        }, 2000);
+        showFeedback('Item deleted successfully! Redirecting to home...');
+        navigateWithDelay('/');
       } else if (adminDeleteItemThunk.rejected.match(result)) {
         throw new Error(result.error.message || 'Failed to delete item');
       }
     } catch (error) {
-      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to delete item');
-      setSnackbarSeverity('error');
-      setShowSnackbar(true);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete item';
+      showFeedback(errorMessage, 'error');
     }
   };
 
@@ -219,7 +226,7 @@ const ItemDetailPage: React.FC = () => {
 
     // Confirm action with user
     const confirmed = window.confirm(
-      `Are you sure you want to ban this user? They will lose access to the platform.`
+      `⚠️ BAN USER\n\nAre you sure you want to ban this user?\n\n• They will lose access to the platform immediately\n• All their active listings will be hidden\n• They cannot create new accounts with the same email\n• This action should only be used for serious violations\n\nClick OK to proceed with ban.`
     );
     
     if (!confirmed) return;
@@ -228,16 +235,13 @@ const ItemDetailPage: React.FC = () => {
       const result = await dispatch(adminBanUserThunk(userId));
 
       if (adminBanUserThunk.fulfilled.match(result)) {
-        setSnackbarMessage('User banned successfully!');
-        setSnackbarSeverity('success');
-        setShowSnackbar(true);
+        showFeedback('User banned successfully! They can no longer access the platform.');
       } else if (adminBanUserThunk.rejected.match(result)) {
         throw new Error(result.error.message || 'Failed to ban user');
       }
     } catch (error) {
-      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to ban user');
-      setSnackbarSeverity('error');
-      setShowSnackbar(true);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to ban user';
+      showFeedback(errorMessage, 'error');
     }
   };
 
@@ -337,12 +341,11 @@ const ItemDetailPage: React.FC = () => {
 
   /**
    * Show admin error in snackbar if it exists
+   * Provides centralized error feedback for admin operations
    */
   React.useEffect(() => {
     if (adminError) {
-      setSnackbarMessage(adminError);
-      setSnackbarSeverity('error');
-      setShowSnackbar(true);
+      showFeedback(`Admin operation failed: ${adminError}`, 'error');
     }
   }, [adminError]);
 
@@ -611,9 +614,17 @@ const ItemDetailPage: React.FC = () => {
                 </Box>
               )}
 
-              {/* Admin Moderation Actions */}
+              {/* Admin Moderation Actions with Loading State */}
               {userPermissions.canModerateContent && (
                 <Box sx={{ mt: 3 }}>
+                  {adminIsLoading && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
+                      <CircularProgress size={20} />
+                      <Typography variant="body2" color="text.secondary">
+                        Processing admin action...
+                      </Typography>
+                    </Box>
+                  )}
                   <AdminActions
                     onDeleteItem={handleAdminDeleteItem}
                     onBanUser={handleAdminBanUser}
@@ -635,17 +646,38 @@ const ItemDetailPage: React.FC = () => {
         maxCount={4}
       />
 
-      {/* Success/Error Snackbar */}
+      {/* Enhanced Success/Error Snackbar with improved UX */}
       <Snackbar
         open={showSnackbar}
-        autoHideDuration={6000}
+        autoHideDuration={snackbarSeverity === 'error' ? 8000 : 6000} // Longer duration for errors
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        sx={{
+          '& .MuiSnackbarContent-root': {
+            minWidth: '350px'
+          }
+        }}
       >
         <Alert 
           onClose={handleCloseSnackbar} 
           severity={snackbarSeverity}
           variant="filled"
+          sx={{
+            width: '100%',
+            fontSize: '0.95rem',
+            alignItems: 'center',
+            '& .MuiAlert-message': {
+              paddingTop: '2px'
+            },
+            ...(snackbarSeverity === 'success' && {
+              backgroundColor: 'success.main',
+              color: 'success.contrastText'
+            }),
+            ...(snackbarSeverity === 'error' && {
+              backgroundColor: 'error.main',
+              color: 'error.contrastText'
+            })
+          }}
         >
           {snackbarMessage}
         </Alert>
