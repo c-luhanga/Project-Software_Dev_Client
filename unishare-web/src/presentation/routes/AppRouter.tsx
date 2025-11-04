@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AppLayout } from '../layout/AppLayout';
 import { LoginPage, RegisterPage } from '../pages/auth';
 import HomePage from '../pages/home/HomePage';
 import SellItemPage from '../pages/items/SellItemPage';
@@ -15,9 +16,10 @@ import { ChatPage } from '../pages/messaging/ChatPage';
  * 
  * Responsibility:
  * - Define application routes and their corresponding components
- * - Configure protected and public routes
+ * - Configure protected and public routes with consistent layout
  * - Handle route-level redirects and navigation
  * - Protect sensitive routes with authentication guards
+ * - Wrap all routes with AppLayout for consistent header and structure
  * 
  * Does NOT:
  * - Handle authentication logic (delegated to ProtectedRoute)
@@ -28,83 +30,101 @@ import { ChatPage } from '../pages/messaging/ChatPage';
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
-      {/* Public Auth Routes - No Protection Required */}
-      <Route path="/auth/login" element={<LoginPage />} />
-      <Route path="/auth/register" element={<RegisterPage />} />
-      
-      {/* Public Item Routes - Browse items and view details without auth */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/items/:id" element={<ItemDetailPage />} />
-      
-      {/* Protected Item Routes - User must be authenticated */}
-      <Route
-        path="/items/sell"
-        element={
-          <ProtectedRoute>
-            <SellItemPage />
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
-        path="/items/mine"
-        element={
-          <ProtectedRoute>
-            <MyListingsPage />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Protected Messaging Routes - User must be authenticated */}
-      <Route
-        path="/inbox"
-        element={
-          <ProtectedRoute>
-            <InboxPage />
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
-        path="/inbox/:conversationId"
-        element={
-          <ProtectedRoute>
-            <ChatPage />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Messages route alias - redirects to inbox */}
-      <Route
-        path="/messages"
-        element={
-          <ProtectedRoute>
-            <Navigate to="/inbox" replace />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Protected Dashboard and Profile Routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <HomePage />
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Catch-all redirect - Unknown paths redirect to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Main Application Layout - All routes render within AppLayout */}
+      <Route path="/" element={<AppLayout />}>
+        
+        {/* Public Routes - No Authentication Required */}
+        
+        {/* Home Page */}
+        <Route index element={<HomePage />} />
+        
+        {/* Authentication Routes */}
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        
+        {/* Public Item Routes - Browse items and view details without auth */}
+        <Route path="items/:id" element={<ItemDetailPage />} />
+        
+        {/* Protected Routes - User Must Be Authenticated */}
+        
+        {/* Profile Route */}
+        <Route
+          path="profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Item Management Routes */}
+        <Route
+          path="items/sell"
+          element={
+            <ProtectedRoute>
+              <SellItemPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="items/mine"
+          element={
+            <ProtectedRoute>
+              <MyListingsPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Messaging Routes */}
+        <Route
+          path="inbox"
+          element={
+            <ProtectedRoute>
+              <InboxPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="inbox/:conversationId"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Route Aliases and Redirects */}
+        
+        {/* Messages route alias - redirects to inbox */}
+        <Route
+          path="messages"
+          element={
+            <ProtectedRoute>
+              <Navigate to="/inbox" replace />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Dashboard route alias - redirects to home */}
+        <Route
+          path="dashboard"
+          element={
+            <ProtectedRoute>
+              <Navigate to="/" replace />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Legacy auth routes - redirect to simplified paths */}
+        <Route path="auth/login" element={<Navigate to="/login" replace />} />
+        <Route path="auth/register" element={<Navigate to="/register" replace />} />
+        
+        {/* Catch-all redirect - Unknown paths redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+        
+      </Route>
     </Routes>
   );
 };
