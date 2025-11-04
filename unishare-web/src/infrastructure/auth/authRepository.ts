@@ -16,6 +16,7 @@ interface ApiLoginResponse {
   userId: number;
   email: string;
   name: string;
+  isAdmin: boolean;
 }
 
 interface ApiUserResponse {
@@ -37,6 +38,7 @@ interface ApiRegisterResponse {
   userId: number;
   email: string;
   name: string;
+  isAdmin: boolean;
 }
 
 /**
@@ -126,6 +128,7 @@ export class AuthRepository implements IAuthRepository {
       userId: apiResponse.userId,
       email: apiResponse.email,
       name: apiResponse.name,
+      isAdmin: 'isAdmin' in apiResponse ? apiResponse.isAdmin : false,
     };
   }
 

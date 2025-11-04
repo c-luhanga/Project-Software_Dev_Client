@@ -281,7 +281,7 @@ export const authSlice = createSlice({
           firstName: action.payload.name.split(' ')[0] || '',
           lastName: action.payload.name.split(' ').slice(1).join(' ') || '',
           email: action.payload.email,
-          isAdmin: false, // Will be updated by getMeThunk
+          isAdmin: action.payload.isAdmin, // Use actual isAdmin from backend response
         } as User;
         state.error = undefined;
       })

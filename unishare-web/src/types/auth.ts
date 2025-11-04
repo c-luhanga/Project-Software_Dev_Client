@@ -42,6 +42,7 @@ export interface AuthToken {
 
 export interface LoginResponse extends AuthToken, UserIdentity {
   name: string;
+  isAdmin: boolean;
 }
 
 // User interfaces following Interface Segregation Principle
