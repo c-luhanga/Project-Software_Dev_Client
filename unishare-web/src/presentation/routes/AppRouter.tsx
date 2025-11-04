@@ -2,7 +2,10 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import { LoginPage, RegisterPage } from '../pages/auth';
-import { HomePage } from '../pages/HomePage';
+import HomePage from '../pages/home/HomePage';
+import SellItemPage from '../pages/items/SellItemPage';
+import MyListingsPage from '../pages/items/MyListingsPage';
+import ItemDetailPage from '../pages/items/ItemDetailPage';
 import { ProfilePage } from '../pages/profile';
 
 /**
@@ -27,27 +30,32 @@ export const AppRouter: React.FC = () => {
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/register" element={<RegisterPage />} />
       
-      {/* Protected Routes - All Private Routes Wrapped with ProtectedRoute */}
+      {/* Public Item Routes - Browse items and view details without auth */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/items/:id" element={<ItemDetailPage />} />
+      
+      {/* Protected Item Routes - User must be authenticated */}
       <Route
-        path="/"
+        path="/items/sell"
         element={
           <ProtectedRoute>
-            <HomePage />
+            <SellItemPage />
           </ProtectedRoute>
         }
       />
       
+      <Route
+        path="/items/mine"
+        element={
+          <ProtectedRoute>
+            <MyListingsPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Protected Dashboard and Profile Routes */}
       <Route
         path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <HomePage />
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
-        path="/items"
         element={
           <ProtectedRoute>
             <HomePage />
