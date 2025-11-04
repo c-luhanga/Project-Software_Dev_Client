@@ -1,0 +1,521 @@
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  Container,
+  Typography,
+  Box,
+  CardMedia,
+  Button,
+  Chip,
+  Divider,
+  CircularProgress,
+  Alert,
+  Snackbar,
+  Paper,
+  Stack,
+  IconButton
+} from '@mui/material';
+import {
+  Message as MessageIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Sell as SellIcon,
+  ArrowBack as ArrowBackIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon
+} from '@mui/icons-material';
+import type { AppDispatch } from '../../../store/store';
+import {
+  getItemThunk,
+  addItemImagesThunk,
+  markItemSoldThunk,
+  clearError,
+  selectCurrentItem,
+  selectIsItemsLoading,
+  selectItemsError
+} from '../../../store/itemsSlice';
+import { selectAuthUser } from '../../../store/authSlice';
+import AddImagesDialog from '../../components/items/AddImagesDialog';
+
+/**
+ * Item Detail Page Container Component
+ * 
+ * Follows Single Responsibility Principle (SRP):
+ * - Responsible only for displaying and managing single item details
+ * - Coordinates between item data and user actions
+ * - Handles owner-specific functionality
+ * 
+ * Container Pattern:
+ * - Manages all side effects and state operations
+ * - Handles item loading and action dispatching
+ * - Orchestrates user interactions via Redux thunks
+ */
+const ItemDetailPage: React.FC = () => {
+  const { itemId } = useParams<{ itemId: string }>();
+  const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Redux state selectors
+  const currentItem = useSelector(selectCurrentItem);
+  const isLoading = useSelector(selectIsItemsLoading);
+  const error = useSelector(selectItemsError);
+  const currentUser = useSelector(selectAuthUser);
+  
+  // Local UI state
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [showAddImagesDialog, setShowAddImagesDialog] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Constants
+  const CONDITIONS = {
+    1: 'New',
+    2: 'Like New', 
+    3: 'Good',
+    4: 'Fair',
+    5: 'Poor'
+  };
+
+  /**
+   * Load item data on component mount
+   */
+  useEffect(() => {
+    if (itemId) {
+      dispatch(clearError());
+      dispatch(getItemThunk(parseInt(itemId)));
+    }
+  }, [dispatch, itemId]);
+
+  /**
+   * Handle add images action
+   */
+  const handleAddImages = () => {
+    setShowAddImagesDialog(true);
+  };
+
+  /**
+   * Handle confirming image upload
+   */
+  const handleConfirmImages = async (imageUrls: string[]) => {
+    if (!currentItem || imageUrls.length === 0) {
+      setShowAddImagesDialog(false);
+      return;
+    }
+
+    try {
+      const result = await dispatch(addItemImagesThunk({
+        itemId: currentItem.itemId,
+        imageUrls
+      }));
+
+      if (addItemImagesThunk.fulfilled.match(result)) {
+        setSnackbarMessage('Images added successfully!');
+        setSnackbarSeverity('success');
+        setShowSnackbar(true);
+        
+        // Refresh the item to show updated images
+        dispatch(getItemThunk(currentItem.itemId));
+      } else if (addItemImagesThunk.rejected.match(result)) {
+        throw new Error(result.error.message || 'Failed to add images');
+      }
+    } catch (error) {
+      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to add images');
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    } finally {
+      setShowAddImagesDialog(false);
+    }
+  };
+
+  /**
+   * Handle mark as sold action
+   */
+  const handleMarkSold = async () => {
+    if (!currentItem) return;
+
+    try {
+      const result = await dispatch(markItemSoldThunk(currentItem.itemId));
+
+      if (markItemSoldThunk.fulfilled.match(result)) {
+        setSnackbarMessage('Item marked as sold!');
+        setSnackbarSeverity('success');
+        setShowSnackbar(true);
+        
+        // Refresh the item to show updated status
+        dispatch(getItemThunk(currentItem.itemId));
+      } else if (markItemSoldThunk.rejected.match(result)) {
+        throw new Error(result.error.message || 'Failed to mark item as sold');
+      }
+    } catch (error) {
+      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to mark item as sold');
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
+  };
+
+  /**
+   * Handle message seller (future implementation)
+   */
+  const handleMessageSeller = () => {
+    // TODO: Navigate to messaging or open message dialog
+    setSnackbarMessage('Messaging functionality coming soon!');
+    setSnackbarSeverity('success');
+    setShowSnackbar(true);
+  };
+
+  /**
+   * Handle back navigation
+   */
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  /**
+   * Handle image navigation
+   */
+  const handlePreviousImage = () => {
+    setCurrentImageIndex(prev => 
+      prev === 0 ? (currentItem?.images?.length || 1) - 1 : prev - 1
+    );
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex(prev => 
+      prev === (currentItem?.images?.length || 1) - 1 ? 0 : prev + 1
+    );
+  };
+
+  /**
+   * Close snackbar
+   */
+  const handleCloseSnackbar = () => {
+    setShowSnackbar(false);
+    dispatch(clearError());
+  };
+
+  /**
+   * Format price display
+   */
+  const formatPrice = (price?: number) => {
+    if (!price) return 'Price not available';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(price);
+  };
+
+  /**
+   * Get status chip
+   */
+  const getStatusChip = () => {
+    if (!currentItem) return null;
+    
+    // Assuming statusId 2 means sold
+    if (currentItem.statusId === 2) {
+      return <Chip label="Sold" color="error" size="medium" />;
+    }
+    return <Chip label="Available" color="success" size="medium" />;
+  };
+
+  /**
+   * Check if current user is the owner
+   */
+  const isOwner = currentUser && currentItem && currentUser.userId === currentItem.sellerId;
+
+  /**
+   * Check if item is sold
+   */
+  const isSold = currentItem?.statusId === 2;
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error">
+          Failed to load item: {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!currentItem) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="warning">
+          Item not found
+        </Alert>
+      </Container>
+    );
+  }
+
+  const hasImages = currentItem.images && currentItem.images.length > 0;
+  const currentImage = hasImages ? currentItem.images[currentImageIndex] : '/placeholder-image.jpg';
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Back Button */}
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={handleBack}
+        sx={{ mb: 3 }}
+        color="inherit"
+      >
+        Back
+      </Button>
+
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
+        {/* Image Gallery */}
+        <Box sx={{ flex: { md: 1 } }}>
+          <Paper elevation={2} sx={{ p: 2 }}>
+            <Box sx={{ position: 'relative' }}>
+              <CardMedia
+                component="img"
+                height="400"
+                image={currentImage}
+                alt={currentItem.title}
+                sx={{ 
+                  objectFit: 'cover',
+                  borderRadius: 2
+                }}
+              />
+              
+              {/* Image Navigation */}
+              {hasImages && currentItem.images.length > 1 && (
+                <>
+                  <IconButton
+                    onClick={handlePreviousImage}
+                    sx={{
+                      position: 'absolute',
+                      left: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      },
+                    }}
+                  >
+                    <ChevronLeftIcon />
+                  </IconButton>
+                  
+                  <IconButton
+                    onClick={handleNextImage}
+                    sx={{
+                      position: 'absolute',
+                      right: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      },
+                    }}
+                  >
+                    <ChevronRightIcon />
+                  </IconButton>
+                  
+                  {/* Image Counter */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 8,
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    {currentImageIndex + 1} / {currentItem.images.length}
+                  </Box>
+                </>
+              )}
+            </Box>
+            
+            {/* Thumbnail Strip */}
+            {hasImages && currentItem.images.length > 1 && (
+              <Box sx={{ mt: 2, display: 'flex', gap: 1, overflow: 'auto' }}>
+                {currentItem.images.map((image, index) => (
+                  <Box
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    sx={{
+                      minWidth: 80,
+                      height: 80,
+                      cursor: 'pointer',
+                      border: index === currentImageIndex ? 2 : 1,
+                      borderColor: index === currentImageIndex ? 'primary.main' : 'divider',
+                      borderRadius: 1,
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <CardMedia
+                      component="img"
+                      height="100%"
+                      width="100%"
+                      image={image}
+                      alt={`${currentItem.title} ${index + 1}`}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Paper>
+        </Box>
+
+        {/* Item Details */}
+        <Box sx={{ flex: { md: 1 } }}>
+          <Stack spacing={3}>
+            {/* Title and Status */}
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Typography variant="h4" component="h1" sx={{ flexGrow: 1, mr: 2 }}>
+                  {currentItem.title}
+                </Typography>
+                {getStatusChip()}
+              </Box>
+              
+              <Typography variant="h3" color="primary" gutterBottom>
+                {formatPrice(currentItem.price)}
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            {/* Item Details */}
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Item Details
+              </Typography>
+              
+              <Stack spacing={1}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Condition:
+                  </Typography>
+                  <Typography variant="body2">
+                    {CONDITIONS[currentItem.conditionId as keyof typeof CONDITIONS] || 'Unknown'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Posted:
+                  </Typography>
+                  <Typography variant="body2">
+                    {new Date(currentItem.postedDate).toLocaleDateString()}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Category:
+                  </Typography>
+                  <Typography variant="body2">
+                    {currentItem.categoryName || 'Not specified'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+
+            <Divider />
+
+            {/* Description */}
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Description
+              </Typography>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                {currentItem.description}
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            {/* Actions */}
+            <Box>
+              <Stack spacing={2}>
+                {/* Buyer Actions */}
+                {!isOwner && (
+                  <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={<MessageIcon />}
+                    onClick={handleMessageSeller}
+                    disabled={isSold}
+                    fullWidth
+                  >
+                    {isSold ? 'Item Sold' : 'Message Seller'}
+                  </Button>
+                )}
+
+                {/* Owner Actions */}
+                {isOwner && (
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<PhotoCameraIcon />}
+                      onClick={handleAddImages}
+                      sx={{ flex: 1 }}
+                    >
+                      Add Images
+                    </Button>
+                    
+                    <Button
+                      variant="contained"
+                      startIcon={<SellIcon />}
+                      onClick={handleMarkSold}
+                      disabled={isSold}
+                      sx={{ flex: 1 }}
+                    >
+                      {isSold ? 'Sold' : 'Mark as Sold'}
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
+
+      {/* Add Images Dialog */}
+      <AddImagesDialog
+        open={showAddImagesDialog}
+        onClose={() => setShowAddImagesDialog(false)}
+        onConfirm={handleConfirmImages}
+        maxCount={4}
+      />
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={showSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbarSeverity}
+          variant="filled"
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+    </Container>
+  );
+};
+
+export default ItemDetailPage;
