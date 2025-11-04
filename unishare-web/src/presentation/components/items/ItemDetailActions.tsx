@@ -19,6 +19,7 @@ import {
 import { styled } from '@mui/material/styles';
 import MessageIcon from '@mui/icons-material/Message';
 import type { ItemDetail } from '../../../domain/items/contracts';
+import { isItemAvailable, getStatusLabel, getStatusColor } from '../../../utils/itemStatus';
 
 /**
  * Component props following ISP - only what's needed for action rendering
@@ -68,26 +69,6 @@ const MessageButton = styled(Button)(({ theme }) => ({
 }));
 
 /**
- * Get status display information
- */
-const getStatusInfo = (statusId: number) => {
-  switch (statusId) {
-    case 1: // Draft
-      return { label: 'Draft', color: 'default' as const };
-    case 2: // Active
-      return { label: 'Available', color: 'success' as const };
-    case 3: // Sold
-      return { label: 'Sold', color: 'error' as const };
-    case 4: // Removed
-      return { label: 'Removed', color: 'default' as const };
-    case 5: // Flagged
-      return { label: 'Flagged', color: 'warning' as const };
-    default:
-      return { label: 'Unknown', color: 'default' as const };
-  }
-};
-
-/**
  * ItemDetailActions Component
  * 
  * Single Responsibility: Only renders item action UI
@@ -111,11 +92,8 @@ export const ItemDetailActions: React.FC<ItemDetailActionsProps> = ({
   // Check if current user owns this item
   const isOwnItem = currentUserId === item.sellerId;
   
-  // Get status information
-  const statusInfo = getStatusInfo(item.statusId);
-  
-  // Check if item is available for messaging
-  const isAvailable = item.statusId === 2; // Active status
+  // Check if item is available for messaging using utility function
+  const isAvailable = isItemAvailable(item.statusId);
   
   console.log('ItemDetailActions render state:', {
     currentUserId,
@@ -161,8 +139,8 @@ export const ItemDetailActions: React.FC<ItemDetailActionsProps> = ({
           </Box>
           
           <StatusChip 
-            label={statusInfo.label} 
-            color={statusInfo.color}
+            label={getStatusLabel(item.statusId)} 
+            color={getStatusColor(item.statusId)}
             size="medium"
           />
         </PriceSection>

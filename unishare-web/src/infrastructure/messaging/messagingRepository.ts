@@ -103,7 +103,7 @@ export class MessagingRepository implements IMessagingRepository {
   /**
    * Start a new conversation with another user
    * 
-   * Maps to: POST /api/v1/messages/conversations
+   * Maps to: POST /v1/Messages/conversations
    * 
    * @param command Domain command with user and optional item
    * @returns Promise resolving to conversation ID
@@ -118,7 +118,7 @@ export class MessagingRepository implements IMessagingRepository {
       };
 
       const response = await this.apiClient.post<StartConversationResponse>(
-        '/api/v1/messages/conversations',
+        '/v1/Messages/conversations',
         request
       );
 
@@ -134,7 +134,7 @@ export class MessagingRepository implements IMessagingRepository {
         'Failed to start conversation',
         500,
         'Internal Server Error',
-        '/api/v1/messages/conversations'
+        '/v1/Messages/conversations'
       );
     }
   }
@@ -142,7 +142,7 @@ export class MessagingRepository implements IMessagingRepository {
   /**
    * Send a message in an existing conversation
    * 
-   * Maps to: POST /api/v1/messages/send
+   * Maps to: POST /v1/Messages/send
    * 
    * @param command Domain command with conversation and message content
    * @returns Promise resolving to sent message details
@@ -157,7 +157,7 @@ export class MessagingRepository implements IMessagingRepository {
       };
 
       const response = await this.apiClient.post<BackendMessageDto>(
-        '/api/v1/messages/send',
+        '/v1/Messages/send',
         request
       );
 
@@ -173,7 +173,7 @@ export class MessagingRepository implements IMessagingRepository {
         'Failed to send message',
         500,
         'Internal Server Error',
-        '/api/v1/messages/send'
+        '/v1/Messages/send'
       );
     }
   }
@@ -181,7 +181,7 @@ export class MessagingRepository implements IMessagingRepository {
   /**
    * Get messages from a conversation with pagination
    * 
-   * Maps to: GET /api/v1/messages/conversations/{conversationId}?page=&pageSize=
+   * Maps to: GET /v1/Messages/conversations/{conversationId}?page=&pageSize=
    * 
    * @param conversationId ID of the conversation
    * @param page Page number (1-based)
@@ -202,7 +202,7 @@ export class MessagingRepository implements IMessagingRepository {
       });
 
       const response = await this.apiClient.get<BackendPagedResult<BackendMessageDto>>(
-        `/api/v1/messages/conversations/${conversationId}?${queryParams}`
+        `/v1/Messages/conversations/${conversationId}?${queryParams}`
       );
 
       return this.mapToPagedMessageResult(response);
@@ -217,7 +217,7 @@ export class MessagingRepository implements IMessagingRepository {
         'Failed to get conversation messages',
         500,
         'Internal Server Error',
-        `/api/v1/messages/conversations/${conversationId}`
+        `/v1/Messages/conversations/${conversationId}`
       );
     }
   }
@@ -225,7 +225,7 @@ export class MessagingRepository implements IMessagingRepository {
   /**
    * Get user's inbox with all conversations
    * 
-   * Maps to: GET /api/v1/messages/inbox?page=&pageSize=
+   * Maps to: GET /v1/Messages/inbox?page=&pageSize=
    * 
    * @param page Page number (1-based)
    * @param pageSize Number of items per page
@@ -244,7 +244,7 @@ export class MessagingRepository implements IMessagingRepository {
       });
 
       const response = await this.apiClient.get<BackendPagedResult<BackendConversationListItem>>(
-        `/api/v1/messages/inbox?${queryParams}`
+        `/v1/Messages/inbox?${queryParams}`
       );
 
       return this.mapToPagedConversationResult(response);
@@ -259,7 +259,7 @@ export class MessagingRepository implements IMessagingRepository {
         'Failed to get inbox',
         500,
         'Internal Server Error',
-        '/api/v1/messages/inbox'
+        '/v1/Messages/inbox'
       );
     }
   }

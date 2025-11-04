@@ -36,6 +36,7 @@ import {
 import { selectAuthUser } from '../../../store/authSlice';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemDetailActionsContainer } from '../../components/items/ItemDetailActionsContainer';
+import { getStatusLabel, getStatusColor, isItemSold } from '../../../utils/itemStatus';
 
 /**
  * Item Detail Page Container Component
@@ -210,11 +211,13 @@ const ItemDetailPage: React.FC = () => {
   const getStatusChip = () => {
     if (!currentItem) return null;
     
-    // Assuming statusId 2 means sold
-    if (currentItem.statusId === 2) {
-      return <Chip label="Sold" color="error" size="medium" />;
-    }
-    return <Chip label="Available" color="success" size="medium" />;
+    return (
+      <Chip 
+        label={getStatusLabel(currentItem.statusId)} 
+        color={getStatusColor(currentItem.statusId)} 
+        size="medium" 
+      />
+    );
   };
 
   /**
@@ -225,7 +228,7 @@ const ItemDetailPage: React.FC = () => {
   /**
    * Check if item is sold
    */
-  const isSold = currentItem?.statusId === 2;
+  const isSold = currentItem ? isItemSold(currentItem.statusId) : false;
 
   if (isLoading) {
     return (
