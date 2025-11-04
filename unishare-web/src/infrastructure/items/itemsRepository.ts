@@ -116,7 +116,7 @@ export class ItemsRepository implements IItemsRepository {
         searchParams.append(key, value.toString());
       });
       
-      const url = `/api/items?${searchParams.toString()}`;
+      const url = `/items?${searchParams.toString()}`;
 
       // Make HTTP request
       const response = await this.apiClient.get<ApiPagedResponse<ApiItemSummary>>(url);
@@ -141,7 +141,7 @@ export class ItemsRepository implements IItemsRepository {
    */
   async getById(itemId: number): Promise<ItemDetail> {
     try {
-      const response = await this.apiClient.get<ApiItemDetail>(`/api/items/${itemId}`);
+      const response = await this.apiClient.get<ApiItemDetail>(`/items/${itemId}`);
       return this.mapToItemDetail(response);
     } catch (error) {
       if (error instanceof Error && error.message.includes('404')) {
@@ -177,7 +177,7 @@ export class ItemsRepository implements IItemsRepository {
       };
 
       const response = await this.apiClient.post<ApiCreateItemResponse>(
-        '/api/items',
+        '/items',
         requestBody
       );
 
@@ -205,7 +205,7 @@ export class ItemsRepository implements IItemsRepository {
       };
 
       await this.apiClient.post<void>(
-        `/api/items/${command.itemId}/images`,
+        `/items/${command.itemId}/images`,
         requestBody
       );
     } catch (error) {
@@ -232,7 +232,7 @@ export class ItemsRepository implements IItemsRepository {
    */
   async markSold(itemId: number): Promise<void> {
     try {
-      await this.apiClient.post<void>(`/api/items/${itemId}/mark-sold`);
+      await this.apiClient.post<void>(`/items/${itemId}/mark-sold`);
     } catch (error) {
       if (error instanceof Error && error.message.includes('404')) {
         throw new Error(`Item with ID ${itemId} not found`);
@@ -264,13 +264,13 @@ export class ItemsRepository implements IItemsRepository {
       
       try {
         const pagedResponse = await this.apiClient.get<ApiPagedResponse<ApiItemSummary>>(
-          '/api/items?owner=self'
+          '/items?owner=self'
         );
         response = pagedResponse.items;
       } catch (primaryError) {
         // Fallback to dedicated endpoint if available
         try {
-          response = await this.apiClient.get<ApiItemSummary[]>('/api/items/mine');
+          response = await this.apiClient.get<ApiItemSummary[]>('/items/mine');
         } catch (fallbackError) {
           // If both fail, throw the original error
           throw primaryError;

@@ -144,8 +144,8 @@ export class AuthRepository implements IAuthRepository {
       profileImageUrl: apiResponse.profileImageUrl,
       isAdmin: apiResponse.isAdmin,
       isBanned: apiResponse.isBanned,
-      createdAt: apiResponse.createdAt ? new Date(apiResponse.createdAt) : undefined,
-      lastSeen: apiResponse.lastSeen ? new Date(apiResponse.lastSeen) : undefined,
+      createdAt: apiResponse.createdAt,  // Keep as string for Redux serialization
+      lastSeen: apiResponse.lastSeen,    // Keep as string for Redux serialization
     };
   }
 }

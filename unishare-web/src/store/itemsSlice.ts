@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import type { RootState } from './store';
 import type { 
   ItemSummary, 
@@ -263,17 +263,26 @@ export const selectItemsStatus = (state: RootState) => state.items.status;
 export const selectItemsError = (state: RootState) => state.items.error;
 
 /**
- * Compound selectors
+ * Compound selectors with memoization
  */
 export const selectIsItemsLoading = (state: RootState) => state.items.status === 'loading';
 export const selectHasItemsError = (state: RootState) => state.items.status === 'failed';
-export const selectItemsListData = (state: RootState) => state.items.list?.items || [];
-export const selectItemsListMetadata = (state: RootState) => ({
-  totalCount: state.items.list?.total || 0,
-  pageSize: state.items.list?.pageSize || 0,
-  currentPage: state.items.list?.page || 1,
-  totalPages: state.items.list?.totalPages || 0,
-});
+
+// Memoized selectors to prevent unnecessary re-renders
+export const selectItemsListData = createSelector(
+  [selectItemsList],
+  (list) => list?.items || []
+);
+
+export const selectItemsListMetadata = createSelector(
+  [selectItemsList],
+  (list) => ({
+    totalCount: list?.total || 0,
+    pageSize: list?.pageSize || 0,
+    currentPage: list?.page || 1,
+    totalPages: list?.totalPages || 0,
+  })
+);
 
 /**
  * Export reducer

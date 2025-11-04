@@ -26,8 +26,8 @@ export interface UserPermissions {
 }
 
 export interface UserTimestamps {
-  createdAt?: Date;
-  lastSeen?: Date;
+  createdAt?: string; // ISO string format for Redux serialization
+  lastSeen?: string;  // ISO string format for Redux serialization
 }
 
 // Authentication request interfaces
