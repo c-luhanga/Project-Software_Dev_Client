@@ -17,7 +17,6 @@ import {
   IconButton
 } from '@mui/material';
 import {
-  Message as MessageIcon,
   PhotoCamera as PhotoCameraIcon,
   Sell as SellIcon,
   ArrowBack as ArrowBackIcon,
@@ -36,6 +35,7 @@ import {
 } from '../../../store/itemsSlice';
 import { selectAuthUser } from '../../../store/authSlice';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
+import { ItemDetailActionsContainer } from '../../components/items/ItemDetailActionsContainer';
 
 /**
  * Item Detail Page Container Component
@@ -161,16 +161,6 @@ const ItemDetailPage: React.FC = () => {
       setSnackbarSeverity('error');
       setShowSnackbar(true);
     }
-  };
-
-  /**
-   * Handle message seller (future implementation)
-   */
-  const handleMessageSeller = () => {
-    // TODO: Navigate to messaging or open message dialog
-    setSnackbarMessage('Messaging functionality coming soon!');
-    setSnackbarSeverity('success');
-    setShowSnackbar(true);
   };
 
   /**
@@ -456,23 +446,12 @@ const ItemDetailPage: React.FC = () => {
 
             {/* Actions */}
             <Box>
-              <Stack spacing={2}>
-                {/* Buyer Actions */}
-                {!isOwner && (
-                  <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={<MessageIcon />}
-                    onClick={handleMessageSeller}
-                    disabled={isSold}
-                    fullWidth
-                  >
-                    {isSold ? 'Item Sold' : 'Message Seller'}
-                  </Button>
-                )}
-
-                {/* Owner Actions */}
-                {isOwner && (
+              {/* Messaging Actions for All Users */}
+              <ItemDetailActionsContainer item={currentItem} />
+              
+              {/* Owner-Specific Actions */}
+              {isOwner && (
+                <Box sx={{ mt: 2 }}>
                   <Stack direction="row" spacing={2}>
                     <Button
                       variant="outlined"
@@ -493,8 +472,8 @@ const ItemDetailPage: React.FC = () => {
                       {isSold ? 'Sold' : 'Mark as Sold'}
                     </Button>
                   </Stack>
-                )}
-              </Stack>
+                </Box>
+              )}
             </Box>
           </Stack>
         </Box>

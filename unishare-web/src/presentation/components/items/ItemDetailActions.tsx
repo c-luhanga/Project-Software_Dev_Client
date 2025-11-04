@@ -117,12 +117,33 @@ export const ItemDetailActions: React.FC<ItemDetailActionsProps> = ({
   // Check if item is available for messaging
   const isAvailable = item.statusId === 2; // Active status
   
+  console.log('ItemDetailActions render state:', {
+    currentUserId,
+    sellerId: item.sellerId,
+    isOwnItem,
+    statusId: item.statusId,
+    isAvailable,
+    isMessaging,
+    item: item
+  });
+  
   /**
    * Handle message seller action
    */
   const handleMessageSeller = () => {
+    console.log('ItemDetailActions handleMessageSeller called');
+    console.log('Button state:', { isOwnItem, isAvailable, isMessaging, item });
+    
     if (!isOwnItem && isAvailable && !isMessaging) {
+      console.log('Calling onMessageSeller with:', item.itemId, item.sellerId);
       onMessageSeller(item.itemId, item.sellerId);
+    } else {
+      console.log('Button click ignored due to state:', { 
+        isOwnItem, 
+        isAvailable, 
+        isMessaging,
+        condition: !isOwnItem && isAvailable && !isMessaging
+      });
     }
   };
 

@@ -57,6 +57,8 @@ export const ItemDetailActionsContainer: React.FC<ItemDetailActionsContainerProp
    * DIP: Uses thunk instead of direct service call
    */
   const handleMessageSeller = async (itemId: number, sellerId: number) => {
+    console.log('handleMessageSeller called with:', { itemId, sellerId, currentUser });
+    
     if (!currentUser) {
       // User should be authenticated to message sellers
       console.warn('User must be authenticated to message sellers');
@@ -65,6 +67,7 @@ export const ItemDetailActionsContainer: React.FC<ItemDetailActionsContainerProp
 
     try {
       setIsMessaging(true);
+      console.log('Starting conversation thunk...');
       
       // Start conversation via Redux thunk (DIP: no direct messaging service import)
       const result = await dispatch(startConversationThunk({
@@ -72,15 +75,19 @@ export const ItemDetailActionsContainer: React.FC<ItemDetailActionsContainerProp
         otherUserId: sellerId
       }));
 
+      console.log('startConversationThunk result:', result);
+
       // Check if conversation creation was successful
       if (startConversationThunk.fulfilled.match(result)) {
         const conversationId = result.payload;
+        console.log('Conversation created successfully, navigating to:', `/inbox/${conversationId}`);
         
         // Navigate to the new conversation
         navigate(`/inbox/${conversationId}`);
       } else {
         // Handle failure case
         console.error('Failed to start conversation:', result.error?.message);
+        console.error('Full error result:', result);
       }
     } catch (error) {
       // Handle unexpected errors
