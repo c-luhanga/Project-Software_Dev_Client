@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   Card,
-  CardMedia,
   CardContent,
   CardActions,
   Button,
@@ -36,6 +35,7 @@ import {
 } from '../../../store/itemsSlice';
 import type { ItemSummary } from '../../../domain/items/contracts';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
+import { ItemImage } from '../../components/common/ItemImage';
 
 /**
  * My Listings Page Container Component
@@ -203,14 +203,6 @@ const MyListingsPage: React.FC = () => {
     }).format(price);
   };
 
-  /**
-   * Get item image or placeholder
-   */
-  const getItemImage = (_item: ItemSummary) => {
-    // ItemSummary doesn't have images, use placeholder
-    return '/placeholder-image.jpg';
-  };
-
   if (isLoading && myItems.length === 0) {
     return (
       <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
@@ -275,11 +267,10 @@ const MyListingsPage: React.FC = () => {
         >
           {myItems.map((item) => (
             <Card key={item.itemId} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardMedia
-                component="img"
-                height="200"
-                image={getItemImage(item)}
+              <ItemImage
+                src={item.thumbnailUrl}
                 alt={item.title}
+                height={200}
                 sx={{ objectFit: 'cover' }}
               />
               

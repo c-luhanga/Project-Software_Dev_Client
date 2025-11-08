@@ -5,7 +5,6 @@ import {
   Container,
   Typography,
   Box,
-  CardMedia,
   Button,
   Chip,
   Divider,
@@ -47,6 +46,7 @@ import AdminActions from '../../components/admin/AdminActions';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemDetailActionsContainer } from '../../components/items/ItemDetailActionsContainer';
 import { getStatusLabel, getStatusColor, isItemSold } from '../../../utils/itemStatus';
+import { ItemImage } from '../../components/common/ItemImage';
 
 /**
  * Item Detail Page Container Component
@@ -378,7 +378,7 @@ const ItemDetailPage: React.FC = () => {
   }
 
   const hasImages = currentItem.images && currentItem.images.length > 0;
-  const currentImage = hasImages ? currentItem.images[currentImageIndex] : '/placeholder-image.jpg';
+  const currentImage = hasImages ? currentItem.images[currentImageIndex] : undefined;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -397,13 +397,11 @@ const ItemDetailPage: React.FC = () => {
         <Box sx={{ flex: { md: 1 } }}>
           <Paper elevation={2} sx={{ p: 2 }}>
             <Box sx={{ position: 'relative' }}>
-              <CardMedia
-                component="img"
-                height="400"
-                image={currentImage}
+              <ItemImage
+                src={currentImage}
                 alt={currentItem.title}
+                height={400}
                 sx={{ 
-                  objectFit: 'cover',
                   borderRadius: 2
                 }}
               />
@@ -482,13 +480,11 @@ const ItemDetailPage: React.FC = () => {
                       overflow: 'hidden'
                     }}
                   >
-                    <CardMedia
-                      component="img"
+                    <ItemImage
+                      src={image}
+                      alt={`${currentItem.title} ${index + 1}`}
                       height="100%"
                       width="100%"
-                      image={image}
-                      alt={`${currentItem.title} ${index + 1}`}
-                      sx={{ objectFit: 'cover' }}
                     />
                   </Box>
                 ))}

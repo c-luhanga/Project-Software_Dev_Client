@@ -6,7 +6,6 @@ import {
   Typography,
   Box,
   Card,
-  CardMedia,
   CardContent,
   CardActionArea,
   Pagination,
@@ -28,6 +27,7 @@ import {
   selectItemsError
 } from '../../../store/itemsSlice';
 import type { ItemSummary } from '../../../domain/items/contracts';
+import { ItemImage } from '../../components/common/ItemImage';
 
 /**
  * Home Page / Browse Items Container Component
@@ -120,14 +120,6 @@ const HomePage: React.FC = () => {
     return <Chip label="Available" color="success" size="small" />;
   };
 
-  /**
-   * Get item image or placeholder
-   */
-  const getItemImage = (_item: ItemSummary) => {
-    // ItemSummary doesn't have images, use placeholder
-    return '/placeholder-image.jpg';
-  };
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header */}
@@ -200,11 +192,10 @@ const HomePage: React.FC = () => {
                   onClick={() => handleItemClick(item)}
                   sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
                 >
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={getItemImage(item)}
+                  <ItemImage
+                    src={item.thumbnailUrl}
                     alt={item.title}
+                    height={200}
                     sx={{ objectFit: 'cover' }}
                   />
                   
