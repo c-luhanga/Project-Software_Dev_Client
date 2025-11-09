@@ -95,7 +95,16 @@ export class AxiosApiClient implements IApiClient {
    */
   async post<T = unknown>(url: string, body?: unknown): Promise<T> {
     try {
-      const response = await this.axiosInstance.post<T>(url, body);
+      // For FormData, let the browser set the Content-Type header automatically
+      // This ensures proper multipart/form-data boundary is set
+      const config: any = {};
+      if (body instanceof FormData) {
+        config.headers = {
+          'Content-Type': undefined // Let browser set multipart/form-data with boundary
+        };
+      }
+      
+      const response = await this.axiosInstance.post<T>(url, body, config);
       return response.data;
     } catch (error) {
       throw error; // Already normalized by interceptor

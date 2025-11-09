@@ -237,9 +237,20 @@ const itemsSlice = createSlice({
         state.status = 'loading';
         state.error = undefined;
       })
-      .addCase(uploadItemImagesThunk.fulfilled, (state) => {
+      .addCase(uploadItemImagesThunk.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Files uploaded successfully - UI may want to refresh current item
+        
+        // Update current item with new image URLs
+        if (state.current) {
+          // Add the new image URLs to the current item's images
+          const newImageUrls = action.payload;
+          // Create a new array with existing images plus new ones
+          const updatedImages = [...(state.current.images || []), ...newImageUrls];
+          // Use Immer's Draft type to update the readonly property
+          (state.current as any).images = updatedImages;
+          
+          console.log('🖼️ Updated item images:', updatedImages);
+        }
       })
       .addCase(uploadItemImagesThunk.rejected, (state, action) => {
         state.status = 'failed';

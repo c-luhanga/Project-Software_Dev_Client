@@ -35,11 +35,21 @@ export const store = configureStore({
           container: container,
         } as ThunkExtraArgument,
       },
-      // Configure serializable check to allow Date objects in specific paths
+      // Configure serializable check to allow Date objects and File objects in specific paths
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
         // Allow Date objects in profile-related actions and state paths
-        ignoredActionPaths: ['payload.createdAt', 'payload.lastSeen', 'payload.postedDate'],
+        ignoredActionPaths: [
+          'payload.createdAt', 
+          'payload.lastSeen', 
+          'payload.postedDate',
+          // Allow File objects in upload actions
+          'meta.arg.files',
+          'meta.arg.files.0',
+          'meta.arg.files.1', 
+          'meta.arg.files.2',
+          'meta.arg.files.3'
+        ],
         ignoredPaths: [
           'profile.profile.createdAt',
           'profile.profile.lastSeen',

@@ -231,13 +231,25 @@ export class ItemsRepository implements IItemsRepository {
     try {
       const formData = new FormData();
       
-      // Add each file to FormData with the name expected by the backend
+      // Add each file to FormData with the exact parameter name expected by the backend
       files.forEach(file => {
         formData.append('files', file);
       });
 
       console.log('🔄 Uploading files to:', `/items/${itemId}/upload-images`);
-      console.log('📁 Files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      console.log('📁 Files being uploaded:');
+      files.forEach((file, index) => {
+        console.log(`  [${index}] ${file.name} (${file.size} bytes, ${file.type})`);
+      });
+      
+      console.log('📦 FormData entries:');
+      for (let pair of formData.entries()) {
+        const value = pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1];
+        console.log(`  ${pair[0]}: ${value}`);
+      }
+
+      // Temporarily log the request details
+      console.log('🔐 Auth token exists:', !!this.apiClient.getToken());
 
       const response = await this.apiClient.post<string[]>(
         `/items/${itemId}/upload-images`,

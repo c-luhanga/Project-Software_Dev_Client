@@ -82,6 +82,33 @@ const ItemDetailPage: React.FC = () => {
   const [showAddImagesDialog, setShowAddImagesDialog] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Debug: Log the current item to see if images are in Redux state
+  useEffect(() => {
+    if (currentItem) {
+      console.log('🔍 Current item from Redux:', {
+        itemId: currentItem.itemId,
+        title: currentItem.title,
+        images: currentItem.images,
+        imageCount: currentItem.images?.length || 0
+      });
+    }
+  }, [currentItem?.images]); // Re-run when images change
+
+  // Debug: Log image gallery state
+  useEffect(() => {
+    if (currentItem) {
+      const hasImages = currentItem.images && currentItem.images.length > 0;
+      const currentImage = hasImages ? currentItem.images[currentImageIndex] : undefined;
+      console.log('🖼️ Image gallery state:', {
+        hasImages,
+        currentImageIndex,
+        currentImage,
+        totalImages: currentItem.images?.length || 0,
+        allImages: currentItem.images
+      });
+    }
+  }, [currentItem, currentImageIndex]);
+
   /**
    * Display snackbar with message
    * Centralized feedback system following SRP
