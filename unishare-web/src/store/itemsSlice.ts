@@ -5,7 +5,8 @@ import type {
   ItemDetail, 
   PagedResult, 
   CreateItemCommand, 
-  AddItemImagesCommand 
+  AddItemImagesCommand,
+  UpdateItemCommand
 } from '../domain/items/contracts';
 import type { IItemsService } from '../domain/items/contracts';
 
@@ -123,6 +124,23 @@ export const markItemSoldThunk = createAsyncThunk<
   async (itemId, { extra }) => {
     const itemsService = extra.container.itemsService;
     await itemsService.markSold(itemId);
+  }
+);
+
+/**
+ * Update item thunk
+ */
+export const updateItemThunk = createAsyncThunk<
+  ItemDetail,
+  { itemId: number; command: UpdateItemCommand },
+  { extra: { container: { itemsService: IItemsService } } }
+>(
+  'items/updateItem',
+  async ({ itemId, command }, { extra }) => {
+    const itemsService = extra.container.itemsService;
+    const result = await itemsService.update(itemId, command);
+    
+    return result;
   }
 );
 
@@ -268,6 +286,50 @@ const itemsSlice = createSlice({
         // Item marked as sold - UI may want to refresh lists
       })
       .addCase(markItemSoldThunk.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      });
+
+    // Update item
+    builder
+      .addCase(updateItemThunk.pending, (state) => {
+        state.status = 'loading';
+        state.error = undefined;
+      })
+      .addCase(updateItemThunk.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // Update the current item with the updated data
+        state.current = action.payload as any;
+        
+        // Also update the item in the list if it exists
+        if (state.list && state.list.items) {
+          const updatedItem = action.payload;
+          const itemIndex = state.list.items.findIndex(item => item.itemId === updatedItem.itemId);
+          if (itemIndex !== -1) {
+            // Update the item summary with available fields
+            (state.list.items as any)[itemIndex] = {
+              ...state.list.items[itemIndex],
+              title: updatedItem.title,
+              price: updatedItem.price,
+              // Keep existing fields that might not be in ItemDetail
+            };
+          }
+        }
+        
+        // Update in mine list if present
+        if (state.mine.length > 0) {
+          const updatedItem = action.payload;
+          const mineIndex = state.mine.findIndex(item => item.itemId === updatedItem.itemId);
+          if (mineIndex !== -1) {
+            (state.mine as any)[mineIndex] = {
+              ...state.mine[mineIndex],
+              title: updatedItem.title,
+              price: updatedItem.price,
+            };
+          }
+        }
+      })
+      .addCase(updateItemThunk.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message;
       });

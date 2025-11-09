@@ -19,6 +19,7 @@ import type {
   ItemDetail, 
   PagedResult, 
   CreateItemCommand, 
+  UpdateItemCommand, 
   AddItemImagesCommand 
 } from '../../domain/items/contracts';
 import type { IApiClient } from '../http/IApiClient';
@@ -185,6 +186,59 @@ export class ItemsRepository implements IItemsRepository {
     } catch (error) {
       throw new Error(
         `Failed to create item: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Update an existing item
+   * 
+   * Maps to: PUT /api/items/{id}
+   * 
+   * @param itemId The item ID to update
+   * @param command Item update data
+   * @returns Promise resolving to updated item details
+   * @throws Error if item not found, unauthorized, or update fails
+   */
+  async update(itemId: number, command: UpdateItemCommand): Promise<ItemDetail> {
+    try {
+      // Build request body with only provided fields
+      const requestBody: any = {};
+      
+      if (command.title !== undefined) requestBody.title = command.title;
+      if (command.description !== undefined) requestBody.description = command.description;
+      if (command.categoryId !== undefined) requestBody.categoryId = command.categoryId;
+      if (command.price !== undefined) requestBody.price = command.price;
+      if (command.conditionId !== undefined) requestBody.conditionId = command.conditionId;
+
+      const response = await this.apiClient.put<ApiItemDetail>(
+        `/items/${itemId}`,
+        requestBody
+      );
+
+      // Convert API response to domain model
+      return {
+        itemId: response.id,
+        title: response.title,
+        description: response.description,
+        categoryId: response.categoryId ?? undefined,
+        categoryName: response.categoryName ?? undefined,
+        price: response.price ?? undefined,
+        conditionId: response.conditionId,
+        statusId: response.statusId,
+        sellerId: response.sellerId,
+        postedDate: response.postedDate,
+        images: response.images ?? []
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('404')) {
+        throw new Error(`Item with ID ${itemId} not found`);
+      }
+      if (error instanceof Error && error.message.includes('403')) {
+        throw new Error(`Unauthorized to update item ${itemId}`);
+      }
+      throw new Error(
+        `Failed to update item ${itemId}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }

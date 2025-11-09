@@ -20,7 +20,8 @@ import type {
   ItemDetail, 
   PagedResult, 
   CreateItemCommand, 
-  AddItemImagesCommand 
+  AddItemImagesCommand,
+  UpdateItemCommand
 } from './contracts';
 import {
   validateAddImages,
@@ -403,6 +404,72 @@ export class ItemsService implements IItemsService {
       throw new BusinessRuleError(
         `Failed to list your items: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'LIST_MINE_ERROR'
+      );
+    }
+  }
+
+  /**
+   * Update item with business logic validation
+   * 
+   * Orchestrates validation and repository operations (SRP)
+   * Enforces business rules for item modification
+   * 
+   * @param itemId The ID of the item to update
+   * @param command Validated item update data
+   * @returns Promise resolving to updated item details
+   * @throws BusinessRuleError for validation failures
+   */
+  async update(itemId: number, command: UpdateItemCommand): Promise<ItemDetail> {
+    // Validate item ID
+    const itemIdValidation = validateItemId(itemId);
+    if (!itemIdValidation.success) {
+      throw new BusinessRuleError(
+        itemIdValidation.message || 'Item ID validation failed',
+        'VALIDATION_ERROR',
+        'itemId'
+      );
+    }
+
+    // Basic validation for update command
+    if (!command || typeof command !== 'object') {
+      throw new BusinessRuleError(
+        'Update command is required',
+        'VALIDATION_ERROR',
+        'command'
+      );
+    }
+
+    // Validate individual fields if provided
+    if (command.title !== undefined && (!command.title || command.title.trim().length === 0)) {
+      throw new BusinessRuleError(
+        'Title cannot be empty',
+        'VALIDATION_ERROR',
+        'title'
+      );
+    }
+
+    if (command.price !== undefined && (command.price <= 0 || !Number.isFinite(command.price))) {
+      throw new BusinessRuleError(
+        'Price must be a positive number',
+        'VALIDATION_ERROR',
+        'price'
+      );
+    }
+
+    // Future extension point: Add business rules for item updates
+    // - Verify user owns the item
+    // - Check item is in editable state (not sold)
+    // - Validate price changes against market rules
+    // - Content moderation for description changes
+    // - Category change restrictions
+    // - Audit trail logging
+
+    try {
+      return await this.repository.update(itemId, command);
+    } catch (error) {
+      throw new BusinessRuleError(
+        `Failed to update item: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'UPDATE_ERROR'
       );
     }
   }

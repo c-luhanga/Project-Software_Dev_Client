@@ -14,7 +14,12 @@ import {
   Snackbar,
   IconButton,
   Menu,
-  MenuItem
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,15 +31,15 @@ import {
 import type { AppDispatch } from '../../../store/store';
 import {
   listMyItemsThunk,
-  addItemImagesThunk,
   uploadItemImagesThunk,
   markItemSoldThunk,
+  updateItemThunk,
   clearError,
   selectMyItems,
   selectIsItemsLoading,
   selectItemsError
 } from '../../../store/itemsSlice';
-import type { ItemSummary } from '../../../domain/items/contracts';
+import type { ItemSummary, UpdateItemCommand } from '../../../domain/items/contracts';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemImage } from '../../components/common/ItemImage';
 
@@ -67,6 +72,15 @@ const MyListingsPage: React.FC = () => {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [menuItemId, setMenuItemId] = useState<number | null>(null);
+  
+  // Edit dialog state
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingItem, setEditingItem] = useState<ItemSummary | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    description: '',
+    price: 0
+  });
 
   /**
    * Load user's items on component mount
@@ -152,15 +166,72 @@ const MyListingsPage: React.FC = () => {
   };
 
   /**
-   * Handle edit item (future implementation)
+   * Handle edit item
    */
   const handleEdit = (itemId: number) => {
-    // TODO: Navigate to edit page or open edit dialog
-    console.log('Edit item:', itemId);
-    setSnackbarMessage('Edit functionality coming soon!');
-    setSnackbarSeverity('success');
-    setShowSnackbar(true);
+    // Find the item to edit
+    const itemToEdit = myItems.find(item => item.itemId === itemId);
+    if (itemToEdit) {
+      setEditingItem(itemToEdit);
+      setEditFormData({
+        title: itemToEdit.title,
+        description: '', // ItemSummary doesn't have description, will need to fetch from API
+        price: itemToEdit.price || 0
+      });
+      setShowEditDialog(true);
+    }
     handleCloseMenu();
+  };
+
+  /**
+   * Handle closing edit dialog
+   */
+  const handleCloseEditDialog = () => {
+    setShowEditDialog(false);
+    setEditingItem(null);
+    setEditFormData({ title: '', description: '', price: 0 });
+  };
+
+  /**
+   * Handle edit form field changes
+   */
+  const handleEditFormChange = (field: string, value: string | number) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  /**
+   * Handle submitting edit form
+   */
+  const handleSubmitEdit = async () => {
+    if (!editingItem) return;
+
+    try {
+      const updateCommand: UpdateItemCommand = {
+        title: editFormData.title || undefined,
+        description: editFormData.description || undefined,
+        price: editFormData.price > 0 ? editFormData.price : undefined
+      };
+
+      await dispatch(updateItemThunk({ 
+        itemId: editingItem.itemId, 
+        command: updateCommand 
+      })).unwrap();
+
+      setSnackbarMessage('Item updated successfully!');
+      setSnackbarSeverity('success');
+      setShowSnackbar(true);
+      handleCloseEditDialog();
+      
+      // Refresh the list to show updated data
+      dispatch(listMyItemsThunk());
+    } catch (error) {
+      setSnackbarMessage(`Failed to update item: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
   };
 
   /**
@@ -359,6 +430,54 @@ const MyListingsPage: React.FC = () => {
         onConfirm={handleConfirmImages}
         maxCount={4}
       />
+
+      {/* Edit Item Dialog */}
+      <Dialog
+        open={showEditDialog}
+        onClose={handleCloseEditDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit Item</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Title"
+              value={editFormData.title}
+              onChange={(e) => handleEditFormChange('title', e.target.value)}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Description"
+              value={editFormData.description}
+              onChange={(e) => handleEditFormChange('description', e.target.value)}
+              fullWidth
+              multiline
+              rows={3}
+            />
+            <TextField
+              label="Price (cents)"
+              type="number"
+              value={editFormData.price}
+              onChange={(e) => handleEditFormChange('price', parseInt(e.target.value) || 0)}
+              fullWidth
+              required
+              inputProps={{ min: 0 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditDialog}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitEdit} 
+            variant="contained"
+            disabled={!editFormData.title || editFormData.price <= 0}
+          >
+            Update Item
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Success/Error Snackbar */}
       <Snackbar

@@ -121,6 +121,35 @@ export interface AddItemImagesCommand {
 }
 
 /**
+ * Command for updating an existing item
+ * 
+ * Partial update command following Single Responsibility Principle:
+ * - Only responsible for item updates
+ * - All fields are optional for partial updates
+ * - Preserves fields not included in the update
+ * 
+ * @example
+ * const cmd: UpdateItemCommand = {
+ *   title: "Updated Title",
+ *   price: 75.50,
+ *   conditionId: 2
+ *   // description and categoryId will remain unchanged
+ * };
+ */
+export interface UpdateItemCommand {
+  /** Updated item title (optional) */
+  readonly title?: string;
+  /** Updated item description (optional) */
+  readonly description?: string;
+  /** Updated category ID (optional) */
+  readonly categoryId?: number;
+  /** Updated item price (optional) */
+  readonly price?: number;
+  /** Updated condition ID (optional) */
+  readonly conditionId?: number;
+}
+
+/**
  * Items repository contract (DIP abstraction)
  * Defines data access operations without implementation details
  * 
@@ -171,6 +200,16 @@ export interface IItemsRepository {
    * @throws Error if creation fails or validation errors
    */
   create(command: CreateItemCommand): Promise<number>;
+
+  /**
+   * Update an existing item
+   * 
+   * @param itemId The item ID to update
+   * @param command Item update data
+   * @returns Promise resolving to updated item details
+   * @throws Error if item not found, unauthorized, or update fails
+   */
+  update(itemId: number, command: UpdateItemCommand): Promise<ItemDetail>;
 
   /**
    * Add images to an existing item
@@ -261,6 +300,19 @@ export interface IItemsService {
    * @throws AuthorizationError if user cannot create items
    */
   create(command: CreateItemCommand): Promise<number>;
+
+  /**
+   * Update item with business validation
+   * Validates business rules and processes update
+   * 
+   * @param itemId The item ID to update
+   * @param command Validated item update data
+   * @returns Promise resolving to updated item details
+   * @throws BusinessLogicError for validation failures
+   * @throws AuthorizationError if user cannot update this item
+   * @throws NotFoundError if item doesn't exist
+   */
+  update(itemId: number, command: UpdateItemCommand): Promise<ItemDetail>;
 
   /**
    * Add images with business logic validation
