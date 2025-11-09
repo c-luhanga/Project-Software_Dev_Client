@@ -5,7 +5,7 @@
  * and placeholder fallback. Follows Single Responsibility Principle (SRP).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, CardMedia } from '@mui/material';
 import { ImageOutlined as ImageIcon } from '@mui/icons-material';
 
@@ -55,6 +55,15 @@ export const ItemImage: React.FC<ItemImageProps> = ({
 }) => {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
+
+  /**
+   * Update currentSrc when src prop changes
+   * This ensures the component re-renders with new images when cycling
+   */
+  useEffect(() => {
+    setCurrentSrc(src);
+    setHasError(false); // Reset error state for new image
+  }, [src]);
 
   /**
    * Handle image load error
