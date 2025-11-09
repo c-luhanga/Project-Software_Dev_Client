@@ -68,7 +68,8 @@ const ValidationHelpers = {
   isValidUrl(url: string): boolean {
     try {
       const urlObj = new URL(url);
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+      // Accept HTTP, HTTPS, and blob URLs (blob URLs are for local file previews)
+      return ['http:', 'https:', 'blob:'].includes(urlObj.protocol);
     } catch {
       return false;
     }

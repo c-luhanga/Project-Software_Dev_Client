@@ -11,9 +11,10 @@ import {
   CircularProgress
 } from '@mui/material';
 import type { AppDispatch } from '../../../store/store';
-import { 
+import {
   createItemThunk, 
   addItemImagesThunk,
+  uploadItemImagesThunk,
   clearError,
   selectIsItemsLoading
 } from '../../../store/itemsSlice';
@@ -83,23 +84,28 @@ const SellItemPage: React.FC = () => {
   /**
    * Handle image upload confirmation from dialog
    */
-  const handleImageUpload = async (imageUrls: string[]) => {
-    if (!createdItemId || imageUrls.length === 0) {
+  const handleImageUpload = async (files: File[]) => { // Changed parameter type
+    if (!createdItemId || files.length === 0) {
       handleNavigateToItem();
       return;
     }
 
     try {
-      const result = await dispatch(addItemImagesThunk({
+      // Clear any previous errors
+      dispatch(clearError());
+      
+      console.log('🔍 Starting file upload for new item:', createdItemId, 'files:', files.length);
+
+      const result = await dispatch(uploadItemImagesThunk({ // Use new thunk
         itemId: createdItemId,
-        imageUrls
+        files
       }));
 
-      if (addItemImagesThunk.fulfilled.match(result)) {
+      if (uploadItemImagesThunk.fulfilled.match(result)) {
         setSnackbarMessage('Images uploaded successfully!');
         setSnackbarSeverity('success');
         setShowSnackbar(true);
-      } else if (addItemImagesThunk.rejected.match(result)) {
+      } else if (uploadItemImagesThunk.rejected.match(result)) {
         setSnackbarMessage('Images upload failed, but item was created');
         setSnackbarSeverity('error');
         setShowSnackbar(true);

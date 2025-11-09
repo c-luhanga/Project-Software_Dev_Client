@@ -27,6 +27,7 @@ import type { AppDispatch } from '../../../store/store';
 import {
   getItemThunk,
   addItemImagesThunk,
+  uploadItemImagesThunk,
   markItemSoldThunk,
   clearError,
   selectCurrentItem,
@@ -139,28 +140,40 @@ const ItemDetailPage: React.FC = () => {
   /**
    * Handle confirming image upload
    */
-  const handleConfirmImages = async (imageUrls: string[]) => {
-    if (!currentItem || imageUrls.length === 0) {
+  const handleConfirmImages = async (files: File[]) => { // Changed parameter type
+    if (!currentItem || files.length === 0) {
       setShowAddImagesDialog(false);
       return;
     }
 
     try {
-      const result = await dispatch(addItemImagesThunk({
+      // Clear any previous errors before starting
+      dispatch(clearError());
+      
+      console.log('🔍 Starting file upload with:', {
         itemId: currentItem.itemId,
-        imageUrls
+        fileCount: files.length,
+        fileNames: files.map(f => f.name)
+      });
+
+      const result = await dispatch(uploadItemImagesThunk({ // Use new thunk
+        itemId: currentItem.itemId,
+        files
       }));
 
-      if (addItemImagesThunk.fulfilled.match(result)) {
-        showFeedback('Images added successfully!');
+      if (uploadItemImagesThunk.fulfilled.match(result)) {
+        showFeedback('Images uploaded successfully!');
         
         // Refresh the item to show updated images
         dispatch(getItemThunk(currentItem.itemId));
-      } else if (addItemImagesThunk.rejected.match(result)) {
-        throw new Error(result.error.message || 'Failed to add images');
+      } else if (uploadItemImagesThunk.rejected.match(result)) {
+        const errorMsg = result.error.message || 'Failed to upload images';
+        console.error('❌ Upload failed:', errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add images';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload images';
+      console.error('❌ Upload error:', errorMessage);
       showFeedback(errorMessage, 'error');
     } finally {
       setShowAddImagesDialog(false);
@@ -358,10 +371,15 @@ const ItemDetailPage: React.FC = () => {
   }
 
   if (error || adminError) {
+    // Determine if this is a loading error vs operation error
+    const isLoadingError = isLoading || adminIsLoading;
+    const errorMessage = error || adminError;
+    const errorTitle = isLoadingError ? "Failed to load item" : "Operation failed";
+    
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Alert severity="error">
-          Failed to load item: {error || adminError}
+          {errorTitle}: {errorMessage}
         </Alert>
       </Container>
     );

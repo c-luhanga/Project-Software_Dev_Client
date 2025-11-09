@@ -27,8 +27,8 @@ interface AddImagesDialogProps {
   open: boolean;
   /** Callback when dialog should close */
   onClose: () => void;
-  /** Callback when user confirms selected images - receives array of image URLs/data */
-  onConfirm: (urls: string[]) => void;
+  /** Callback when user confirms selected images - receives array of File objects */
+  onConfirm: (files: File[]) => void;
   /** Maximum number of images allowed (default: 4) */
   maxCount?: number;
 }
@@ -101,12 +101,12 @@ const AddImagesDialog: React.FC<AddImagesDialogProps> = ({
   };
 
   /**
-   * Handle confirm - send preview URLs to parent
+   * Handle confirm - send files to parent for upload
    */
   const handleConfirm = () => {
-    // Parent will handle actual upload/processing
-    // We just pass the preview URLs for now
-    onConfirm(previewUrls);
+    // Pass actual files for upload, not preview URLs
+    console.log('📤 Confirming files:', selectedFiles.map(f => ({ name: f.name, size: f.size })));
+    onConfirm(selectedFiles); // Pass files instead of URLs
     
     // Reset state after confirmation
     setSelectedFiles([]);

@@ -27,6 +27,7 @@ import type { AppDispatch } from '../../../store/store';
 import {
   listMyItemsThunk,
   addItemImagesThunk,
+  uploadItemImagesThunk,
   markItemSoldThunk,
   clearError,
   selectMyItems,
@@ -87,30 +88,35 @@ const MyListingsPage: React.FC = () => {
   /**
    * Handle confirming image upload
    */
-  const handleConfirmImages = async (imageUrls: string[]) => {
-    if (!selectedItemId || imageUrls.length === 0) {
+  const handleConfirmImages = async (files: File[]) => { // Changed parameter type
+    if (!selectedItemId || files.length === 0) {
       setShowAddImagesDialog(false);
       return;
     }
 
     try {
-      const result = await dispatch(addItemImagesThunk({
+      // Clear any previous errors
+      dispatch(clearError());
+      
+      console.log('🔍 Starting file upload for item:', selectedItemId, 'files:', files.length);
+
+      const result = await dispatch(uploadItemImagesThunk({ // Use new thunk
         itemId: selectedItemId,
-        imageUrls
+        files
       }));
 
-      if (addItemImagesThunk.fulfilled.match(result)) {
-        setSnackbarMessage('Images added successfully!');
+      if (uploadItemImagesThunk.fulfilled.match(result)) {
+        setSnackbarMessage('Images uploaded successfully!');
         setSnackbarSeverity('success');
         setShowSnackbar(true);
         
         // Refresh the listings to show updated images
         dispatch(listMyItemsThunk());
-      } else if (addItemImagesThunk.rejected.match(result)) {
-        throw new Error(result.error.message || 'Failed to add images');
+      } else if (uploadItemImagesThunk.rejected.match(result)) {
+        throw new Error(result.error.message || 'Failed to upload images');
       }
     } catch (error) {
-      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to add images');
+      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to upload images');
       setSnackbarSeverity('error');
       setShowSnackbar(true);
     } finally {

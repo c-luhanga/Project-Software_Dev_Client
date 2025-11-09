@@ -206,11 +206,33 @@ export class ItemsService implements IItemsService {
    * @throws BusinessRuleError for validation failures
    */
   async addImages(command: AddItemImagesCommand): Promise<void> {
+    // DEBUG: Log the command being validated
+    console.log('🔍 DEBUG addImages - Command received:', {
+      itemId: command.itemId,
+      imageUrls: command.imageUrls,
+      imageUrlsType: typeof command.imageUrls,
+      imageUrlsLength: command.imageUrls?.length,
+      commandKeys: Object.keys(command)
+    });
+    
     // Run basic validation
     const validationResult = validateAddImages(command);
+    
+    // DEBUG: Log validation result
+    console.log('🔍 DEBUG addImages - Validation result:', {
+      success: validationResult.success,
+      message: validationResult.message,
+      errors: validationResult.errors,
+      hasData: !!validationResult.data
+    });
 
     if (!validationResult.success) {
       const firstError = Object.entries(validationResult.errors || {})[0];
+      console.error('❌ DEBUG addImages - Validation failed:', {
+        firstError,
+        allErrors: validationResult.errors,
+        message: validationResult.message
+      });
       throw new BusinessRuleError(
         validationResult.message || 'Image validation failed',
         'VALIDATION_ERROR',
@@ -250,6 +272,71 @@ export class ItemsService implements IItemsService {
       throw new BusinessRuleError(
         `Failed to add images: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'ADD_IMAGES_ERROR'
+      );
+    }
+  }
+
+  /**
+   * Upload image files with business logic validation
+   * 
+   * @param itemId The item ID
+   * @param files Array of File objects to upload
+   * @returns Promise resolving to array of uploaded image URLs
+   */
+  async uploadImageFiles(itemId: number, files: File[]): Promise<string[]> {
+    // Validate item ID
+    const validationResult = validateItemId(itemId);
+    if (!validationResult.success) {
+      throw new BusinessRuleError(
+        validationResult.message || 'Item ID validation failed',
+        'VALIDATION_ERROR',
+        'itemId'
+      );
+    }
+
+    // Validate files
+    if (!files || files.length === 0) {
+      throw new BusinessRuleError('At least one file is required', 'VALIDATION_ERROR', 'files');
+    }
+
+    if (files.length > 4) {
+      throw new BusinessRuleError('Maximum 4 files allowed', 'VALIDATION_ERROR', 'files');
+    }
+
+    // Validate file types and sizes (client-side validation)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    for (const file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        throw new BusinessRuleError(
+          `File "${file.name}" has unsupported type. Allowed: JPEG, PNG, GIF, WebP, BMP`,
+          'VALIDATION_ERROR',
+          'files'
+        );
+      }
+
+      if (file.size > maxSize) {
+        throw new BusinessRuleError(
+          `File "${file.name}" is too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum size: 5MB`,
+          'VALIDATION_ERROR',
+          'files'
+        );
+      }
+    }
+
+    console.log('🔍 Uploading files:', {
+      itemId,
+      fileCount: files.length,
+      files: files.map(f => ({ name: f.name, size: f.size, type: f.type }))
+    });
+
+    try {
+      return await this.repository.uploadImageFiles(itemId, files);
+    } catch (error) {
+      throw new BusinessRuleError(
+        `Failed to upload images: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'UPLOAD_ERROR'
       );
     }
   }

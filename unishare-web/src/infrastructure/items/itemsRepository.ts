@@ -222,6 +222,53 @@ export class ItemsRepository implements IItemsRepository {
   }
 
   /**
+   * Upload image files to an existing item
+   * Uses the new file upload endpoint instead of URL-based endpoint
+   * 
+   * Maps to: POST /api/items/{id}/upload-images
+   */
+  async uploadImageFiles(itemId: number, files: File[]): Promise<string[]> {
+    try {
+      const formData = new FormData();
+      
+      // Add each file to FormData with the name expected by the backend
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+
+      console.log('🔄 Uploading files to:', `/items/${itemId}/upload-images`);
+      console.log('📁 Files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+
+      const response = await this.apiClient.post<string[]>(
+        `/items/${itemId}/upload-images`,
+        formData
+      );
+
+      console.log('✅ Upload successful, URLs:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Upload failed:', error);
+      
+      if (error instanceof Error && error.message.includes('404')) {
+        throw new Error(`Item with ID ${itemId} not found`);
+      }
+      if (error instanceof Error && error.message.includes('403')) {
+        throw new Error(`Unauthorized to upload images to item ${itemId}`);
+      }
+      if (error instanceof Error && error.message.includes('413')) {
+        throw new Error('Files too large. Maximum size is 5MB per file');
+      }
+      if (error instanceof Error && error.message.includes('415')) {
+        throw new Error('Unsupported file type. Please use JPEG, PNG, GIF, or WebP images');
+      }
+      
+      throw new Error(
+        `Failed to upload images to item ${itemId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
    * Mark an item as sold
    * 
    * Maps to: POST /api/items/{id}/mark-sold

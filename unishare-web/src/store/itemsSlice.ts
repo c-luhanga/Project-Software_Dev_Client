@@ -97,6 +97,21 @@ export const addItemImagesThunk = createAsyncThunk<
 );
 
 /**
+ * Upload item image files thunk (for actual file uploads)
+ */
+export const uploadItemImagesThunk = createAsyncThunk<
+  string[],
+  { itemId: number; files: File[] },
+  { extra: { container: { itemsService: IItemsService } } }
+>(
+  'items/uploadItemImages',
+  async ({ itemId, files }, { extra }) => {
+    const itemsService = extra.container.itemsService;
+    return await itemsService.uploadImageFiles(itemId, files);
+  }
+);
+
+/**
  * Mark item as sold thunk
  */
 export const markItemSoldThunk = createAsyncThunk<
@@ -212,6 +227,21 @@ const itemsSlice = createSlice({
         // Images added successfully - UI may want to refresh current item
       })
       .addCase(addItemImagesThunk.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      });
+
+    // Upload item images (files)
+    builder
+      .addCase(uploadItemImagesThunk.pending, (state) => {
+        state.status = 'loading';
+        state.error = undefined;
+      })
+      .addCase(uploadItemImagesThunk.fulfilled, (state) => {
+        state.status = 'succeeded';
+        // Files uploaded successfully - UI may want to refresh current item
+      })
+      .addCase(uploadItemImagesThunk.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message;
       });

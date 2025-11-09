@@ -182,6 +182,16 @@ export interface IItemsRepository {
   addImages(command: AddItemImagesCommand): Promise<void>;
 
   /**
+   * Upload image files to an existing item
+   * 
+   * @param itemId The item ID
+   * @param files Array of File objects to upload
+   * @returns Promise resolving to array of uploaded image URLs
+   * @throws Error if item not found, unauthorized, or upload fails
+   */
+  uploadImageFiles(itemId: number, files: File[]): Promise<string[]>;
+
+  /**
    * Mark an item as sold
    * 
    * @param itemId The item ID to mark as sold
@@ -262,6 +272,18 @@ export interface IItemsService {
    * @throws AuthorizationError if user cannot modify item
    */
   addImages(command: AddItemImagesCommand): Promise<void>;
+
+  /**
+   * Upload image files with business logic validation
+   * Validates file requirements and business rules
+   * 
+   * @param itemId The item ID
+   * @param files Array of File objects to upload
+   * @returns Promise resolving to array of uploaded image URLs
+   * @throws BusinessLogicError for validation failures
+   * @throws AuthorizationError if user cannot modify item
+   */
+  uploadImageFiles(itemId: number, files: File[]): Promise<string[]>;
 
   /**
    * Mark item as sold with business validation
