@@ -107,7 +107,14 @@ function ItemCard({ item, onClick }: ItemCardProps) {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'Unknown date';
+    
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date string:', dateString);
+      return 'Invalid date';
+    }
+    
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
