@@ -19,8 +19,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
+  TextField,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
 import {
   Add as AddIcon,
   Sell as SellIcon,
@@ -31,6 +35,7 @@ import {
 import type { AppDispatch } from '../../../store/store';
 import {
   listMyItemsThunk,
+  getItemThunk,
   uploadItemImagesThunk,
   markItemSoldThunk,
   updateItemThunk,
@@ -79,7 +84,9 @@ const MyListingsPage: React.FC = () => {
   const [editFormData, setEditFormData] = useState({
     title: '',
     description: '',
-    price: 0
+    price: 0,
+    categoryId: 0,
+    conditionId: 0
   });
 
   /**
@@ -168,17 +175,24 @@ const MyListingsPage: React.FC = () => {
   /**
    * Handle edit item
    */
-  const handleEdit = (itemId: number) => {
-    // Find the item to edit
-    const itemToEdit = myItems.find(item => item.itemId === itemId);
-    if (itemToEdit) {
-      setEditingItem(itemToEdit);
+  const handleEdit = async (itemId: number) => {
+    try {
+      // Get the full item details for editing
+      const itemDetail = await dispatch(getItemThunk(itemId)).unwrap();
+      
+      setEditingItem(myItems.find(item => item.itemId === itemId) || null);
       setEditFormData({
-        title: itemToEdit.title,
-        description: '', // ItemSummary doesn't have description, will need to fetch from API
-        price: itemToEdit.price || 0
+        title: itemDetail.title,
+        description: itemDetail.description || '',
+        price: itemDetail.price || 0,
+        categoryId: itemDetail.categoryId || 0,
+        conditionId: itemDetail.conditionId || 0
       });
       setShowEditDialog(true);
+    } catch (error) {
+      setSnackbarMessage(`Failed to load item details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
     }
     handleCloseMenu();
   };
@@ -189,7 +203,7 @@ const MyListingsPage: React.FC = () => {
   const handleCloseEditDialog = () => {
     setShowEditDialog(false);
     setEditingItem(null);
-    setEditFormData({ title: '', description: '', price: 0 });
+    setEditFormData({ title: '', description: '', price: 0, categoryId: 0, conditionId: 0 });
   };
 
   /**
@@ -203,6 +217,16 @@ const MyListingsPage: React.FC = () => {
   };
 
   /**
+   * Handle select changes for category and condition
+   */
+  const handleSelectChange = (field: string) => (event: SelectChangeEvent<number>) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: event.target.value as number
+    }));
+  };
+
+  /**
    * Handle submitting edit form
    */
   const handleSubmitEdit = async () => {
@@ -212,7 +236,9 @@ const MyListingsPage: React.FC = () => {
       const updateCommand: UpdateItemCommand = {
         title: editFormData.title || undefined,
         description: editFormData.description || undefined,
-        price: editFormData.price > 0 ? editFormData.price : undefined
+        price: editFormData.price > 0 ? editFormData.price : undefined,
+        categoryId: editFormData.categoryId > 0 ? editFormData.categoryId : undefined,
+        conditionId: editFormData.conditionId > 0 ? editFormData.conditionId : undefined
       };
 
       await dispatch(updateItemThunk({ 
@@ -456,6 +482,41 @@ const MyListingsPage: React.FC = () => {
               multiline
               rows={3}
             />
+            
+            {/* Category and Condition */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={editFormData.categoryId}
+                  onChange={handleSelectChange('categoryId')}
+                  label="Category"
+                >
+                  <MenuItem value={1}>Electronics</MenuItem>
+                  <MenuItem value={2}>Books</MenuItem>
+                  <MenuItem value={3}>Clothing</MenuItem>
+                  <MenuItem value={4}>Furniture</MenuItem>
+                  <MenuItem value={5}>Sports & Recreation</MenuItem>
+                  <MenuItem value={6}>Other</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <FormControl fullWidth>
+                <InputLabel>Condition</InputLabel>
+                <Select
+                  value={editFormData.conditionId}
+                  onChange={handleSelectChange('conditionId')}
+                  label="Condition"
+                >
+                  <MenuItem value={1}>New</MenuItem>
+                  <MenuItem value={2}>Like New</MenuItem>
+                  <MenuItem value={3}>Good</MenuItem>
+                  <MenuItem value={4}>Fair</MenuItem>
+                  <MenuItem value={5}>Poor</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            
             <TextField
               label="Price (cents)"
               type="number"

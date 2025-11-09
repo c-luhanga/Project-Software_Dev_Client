@@ -13,8 +13,18 @@ import {
   Snackbar,
   Paper,
   Stack,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
   Sell as SellIcon,
@@ -26,14 +36,15 @@ import {
 import type { AppDispatch } from '../../../store/store';
 import {
   getItemThunk,
-  addItemImagesThunk,
   uploadItemImagesThunk,
   markItemSoldThunk,
+  updateItemThunk,
   clearError,
   selectCurrentItem,
   selectIsItemsLoading,
   selectItemsError
 } from '../../../store/itemsSlice';
+import type { UpdateItemCommand } from '../../../domain/items/contracts';
 import { selectAuthUser } from '../../../store/authSlice';
 import { canEditItem, canMarkSold, canModerate } from '../../../domain/auth/permissions';
 import {
@@ -81,6 +92,16 @@ const ItemDetailPage: React.FC = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [showAddImagesDialog, setShowAddImagesDialog] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Edit dialog state
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    description: '',
+    price: 0,
+    categoryId: 0,
+    conditionId: 0
+  });
 
   // Debug: Log the current item to see if images are in Redux state
   useEffect(() => {
@@ -328,6 +349,84 @@ const ItemDetailPage: React.FC = () => {
     setShowSnackbar(false);
     dispatch(clearError());
     dispatch(clearAdminError());
+  };
+
+  /**
+   * Handle opening edit dialog
+   */
+  const handleEditItem = () => {
+    if (currentItem) {
+      setEditFormData({
+        title: currentItem.title,
+        description: currentItem.description || '',
+        price: currentItem.price || 0,
+        categoryId: currentItem.categoryId || 0,
+        conditionId: currentItem.conditionId || 0
+      });
+      setShowEditDialog(true);
+    }
+  };
+
+  /**
+   * Handle closing edit dialog
+   */
+  const handleCloseEditDialog = () => {
+    setShowEditDialog(false);
+    setEditFormData({ title: '', description: '', price: 0, categoryId: 0, conditionId: 0 });
+  };
+
+  /**
+   * Handle edit form field changes
+   */
+  const handleEditFormChange = (field: string, value: string | number) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  /**
+   * Handle select changes for category and condition
+   */
+  const handleSelectChange = (field: string) => (event: SelectChangeEvent<number>) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: event.target.value as number
+    }));
+  };
+
+  /**
+   * Handle submitting edit form
+   */
+  const handleSubmitEdit = async () => {
+    if (!currentItem) return;
+
+    try {
+      const updateCommand: UpdateItemCommand = {
+        title: editFormData.title || undefined,
+        description: editFormData.description || undefined,
+        price: editFormData.price > 0 ? editFormData.price : undefined,
+        categoryId: editFormData.categoryId > 0 ? editFormData.categoryId : undefined,
+        conditionId: editFormData.conditionId > 0 ? editFormData.conditionId : undefined
+      };
+
+      await dispatch(updateItemThunk({ 
+        itemId: currentItem.itemId, 
+        command: updateCommand 
+      })).unwrap();
+
+      setSnackbarMessage('Item updated successfully!');
+      setSnackbarSeverity('success');
+      setShowSnackbar(true);
+      handleCloseEditDialog();
+      
+      // Refresh the item to show updated data
+      dispatch(getItemThunk(currentItem.itemId));
+    } catch (error) {
+      setSnackbarMessage(`Failed to update item: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
   };
 
   /**
@@ -647,10 +746,7 @@ const ItemDetailPage: React.FC = () => {
                       startIcon={<EditIcon />}
                       disabled={!userPermissions.canEdit}
                       sx={{ flex: 1 }}
-                      onClick={() => {
-                        // TODO: Navigate to edit page when implemented
-                        console.log('Edit item:', currentItem.itemId);
-                      }}
+                      onClick={handleEditItem}
                     >
                       Edit
                     </Button>
@@ -700,6 +796,89 @@ const ItemDetailPage: React.FC = () => {
         onConfirm={handleConfirmImages}
         maxCount={4}
       />
+
+      {/* Edit Item Dialog */}
+      <Dialog
+        open={showEditDialog}
+        onClose={handleCloseEditDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit Item</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Title"
+              value={editFormData.title}
+              onChange={(e) => handleEditFormChange('title', e.target.value)}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Description"
+              value={editFormData.description}
+              onChange={(e) => handleEditFormChange('description', e.target.value)}
+              fullWidth
+              multiline
+              rows={3}
+            />
+            
+            {/* Category and Condition */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={editFormData.categoryId}
+                  onChange={handleSelectChange('categoryId')}
+                  label="Category"
+                >
+                  <MenuItem value={1}>Electronics</MenuItem>
+                  <MenuItem value={2}>Books</MenuItem>
+                  <MenuItem value={3}>Clothing</MenuItem>
+                  <MenuItem value={4}>Furniture</MenuItem>
+                  <MenuItem value={5}>Sports & Recreation</MenuItem>
+                  <MenuItem value={6}>Other</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <FormControl fullWidth>
+                <InputLabel>Condition</InputLabel>
+                <Select
+                  value={editFormData.conditionId}
+                  onChange={handleSelectChange('conditionId')}
+                  label="Condition"
+                >
+                  <MenuItem value={1}>New</MenuItem>
+                  <MenuItem value={2}>Like New</MenuItem>
+                  <MenuItem value={3}>Good</MenuItem>
+                  <MenuItem value={4}>Fair</MenuItem>
+                  <MenuItem value={5}>Poor</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            
+            <TextField
+              label="Price (cents)"
+              type="number"
+              value={editFormData.price}
+              onChange={(e) => handleEditFormChange('price', parseInt(e.target.value) || 0)}
+              fullWidth
+              required
+              inputProps={{ min: 0 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditDialog}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitEdit} 
+            variant="contained"
+            disabled={!editFormData.title || editFormData.price <= 0}
+          >
+            Update Item
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Enhanced Success/Error Snackbar with improved UX */}
       <Snackbar
