@@ -178,7 +178,7 @@ const HomePage: React.FC = () => {
               <Card
                 key={`item-${item.itemId}-${index}`}
                 sx={{
-                  height: '100%',
+                  height: 360, // Fixed height for all cards
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'transform 0.2s, box-shadow 0.2s',
@@ -190,28 +190,78 @@ const HomePage: React.FC = () => {
               >
                 <CardActionArea
                   onClick={() => handleItemClick(item)}
-                  sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                  sx={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'stretch',
+                    justifyContent: 'flex-start'
+                  }}
                 >
                   <ItemImage
                     src={item.thumbnailUrl}
                     alt={item.title}
-                    height={200}
-                    sx={{ objectFit: 'cover' }}
+                    height={200} // Fixed image height
+                    sx={{ 
+                      objectFit: 'cover',
+                      flexShrink: 0 // Prevent image from shrinking
+                    }}
                   />
                   
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="h6" component="h2" sx={{ flexGrow: 1, mr: 1 }}>
-                        {item.title}
+                  <CardContent 
+                    sx={{ 
+                      flexGrow: 1, 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      height: 160, // Fixed content height (360 - 200 = 160)
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <Box sx={{ flex: 1, minHeight: 0 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography 
+                          variant="h6" 
+                          component="h2" 
+                          sx={{ 
+                            flexGrow: 1, 
+                            mr: 1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2, // Limit to 2 lines
+                            WebkitBoxOrient: 'vertical',
+                            lineHeight: 1.2,
+                            maxHeight: '2.4em' // 2 lines * 1.2 line height
+                          }}
+                        >
+                          {item.title}
+                        </Typography>
+                        {getStatusChip(item)}
+                      </Box>
+                      
+                      <Typography 
+                        variant="h5" 
+                        color="primary" 
+                        gutterBottom
+                        sx={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {formatPrice(item.price)}
                       </Typography>
-                      {getStatusChip(item)}
                     </Box>
                     
-                    <Typography variant="h5" color="primary" gutterBottom>
-                      {formatPrice(item.price)}
-                    </Typography>
-                    
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{
+                        mt: 'auto', // Push to bottom
+                        flexShrink: 0
+                      }}
+                    >
                       Posted {new Date(item.postedDate).toLocaleDateString()}
                     </Typography>
                   </CardContent>
