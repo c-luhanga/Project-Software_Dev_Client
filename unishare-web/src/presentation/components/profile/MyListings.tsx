@@ -8,7 +8,22 @@
  * - Pure UI component with props interface
  */
 
-import type { ItemSummary } from '../../../domain/user/contracts';
+import React from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  CardActionArea,
+  Chip,
+  Button,
+  Skeleton,
+  Stack
+} from '@mui/material';
+import { Add as AddIcon, Image as ImageIcon } from '@mui/icons-material';
+import type { ItemSummary } from '../../../domain/items/contracts';
 
 /**
  * My Listings props following Interface Segregation Principle (ISP)
@@ -21,6 +36,8 @@ interface MyListingsProps {
   loading: boolean;
   /** Optional click handler for items */
   onItemClick?: (item: ItemSummary) => void;
+  /** Optional handler for adding new item */
+  onAddItem?: () => void;
   /** Custom grid className */
   className?: string;
 }
@@ -42,24 +59,30 @@ function StatusBadge({ statusId }: { statusId: number }) {
   const getStatusInfo = (id: number) => {
     switch (id) {
       case 1:
-        return { label: 'Available', color: 'bg-green-100 text-green-800' };
+        return { label: 'Available', color: 'success' as const };
       case 2:
-        return { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' };
+        return { label: 'Pending', color: 'warning' as const };
       case 3:
-        return { label: 'Sold', color: 'bg-gray-100 text-gray-800' };
+        return { label: 'Sold', color: 'default' as const };
       case 4:
-        return { label: 'Withdrawn', color: 'bg-red-100 text-red-800' };
+        return { label: 'Withdrawn', color: 'error' as const };
       default:
-        return { label: 'Unknown', color: 'bg-gray-100 text-gray-600' };
+        return { label: 'Unknown', color: 'default' as const };
     }
   };
 
   const { label, color } = getStatusInfo(statusId);
 
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-      {label}
-    </span>
+    <Chip 
+      label={label} 
+      color={color}
+      size="small"
+      sx={{ 
+        fontWeight: 'medium',
+        fontSize: '0.75rem'
+      }}
+    />
   );
 }
 
@@ -83,7 +106,8 @@ function ItemCard({ item, onClick }: ItemCardProps) {
     }).format(price);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -92,55 +116,109 @@ function ItemCard({ item, onClick }: ItemCardProps) {
   };
 
   return (
-    <div 
-      className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden 
-        hover:shadow-md transition-shadow duration-200 ${onClick ? 'cursor-pointer' : ''}`}
-      onClick={handleClick}
+    <Card 
+      sx={{ 
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': onClick ? {
+          transform: 'translateY(-2px)',
+          boxShadow: 3
+        } : {}
+      }}
     >
-      {/* Thumbnail */}
-      <div className="aspect-w-16 aspect-h-9 bg-gray-200">
-        {item.thumbnailUrl ? (
-          <img
-            src={item.thumbnailUrl}
-            alt={item.title}
-            className="w-full h-48 object-cover"
-            onError={(e) => {
-              // Fallback to placeholder if image fails to load
-              const target = e.target as HTMLImageElement;
-              target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik04MCA4MEgxMjBWMTIwSDgwVjgwWiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
-            }}
-          />
-        ) : (
-          <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-        )}
-      </div>
+      <CardActionArea 
+        onClick={handleClick}
+        disabled={!onClick}
+        sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+      >
+        {/* Thumbnail */}
+        <CardMedia
+          sx={{
+            height: 200,
+            backgroundColor: 'grey.100',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {item.thumbnailUrl ? (
+            <Box
+              component="img"
+              src={item.thumbnailUrl}
+              alt={item.title}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+              onError={(e) => {
+                // Fallback to placeholder if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.parentElement!.innerHTML = `
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'grey.400' }}>
+                    <ImageIcon sx={{ fontSize: 40 }} />
+                  </Box>
+                `;
+              }}
+            />
+          ) : (
+            <ImageIcon sx={{ fontSize: 40, color: 'grey.400' }} />
+          )}
+        </CardMedia>
 
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-medium text-gray-900 truncate pr-2">
-            {item.title}
-          </h3>
-          <StatusBadge statusId={item.statusId} />
-        </div>
+        {/* Content */}
+        <CardContent sx={{ flexGrow: 1, p: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+            <Typography 
+              variant="h6" 
+              component="h3"
+              sx={{ 
+                fontSize: '1rem',
+                fontWeight: 600,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                lineHeight: 1.3,
+                maxHeight: '2.6em',
+                mr: 1
+              }}
+            >
+              {item.title}
+            </Typography>
+            <StatusBadge statusId={item.statusId} />
+          </Box>
 
-        {/* Price */}
-        {item.price && (
-          <p className="text-xl font-bold text-gray-900 mb-2">
-            {formatPrice(item.price)}
-          </p>
-        )}
+          {/* Price */}
+          {item.price && (
+            <Typography 
+              variant="h6" 
+              component="p"
+              sx={{ 
+                fontWeight: 700,
+                color: 'primary.main',
+                mb: 1
+              }}
+            >
+              {formatPrice(item.price)}
+            </Typography>
+          )}
 
-        {/* Posted Date */}
-        <p className="text-sm text-gray-500">
-          Posted {formatDate(item.postedDate)}
-        </p>
-      </div>
-    </div>
+          {/* Posted Date */}
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+          >
+            Posted {formatDate(item.postedDate)}
+          </Typography>
+        </CardContent>
+      </CardActionArea>
+    </Card>
   );
 }
 
@@ -149,17 +227,17 @@ function ItemCard({ item, onClick }: ItemCardProps) {
  */
 function ItemCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
-      <div className="w-full h-48 bg-gray-200"></div>
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-5 bg-gray-200 rounded w-16"></div>
-        </div>
-        <div className="h-6 bg-gray-200 rounded w-20 mb-2"></div>
-        <div className="h-4 bg-gray-200 rounded w-24"></div>
-      </div>
-    </div>
+    <Card sx={{ height: '100%' }}>
+      <Skeleton variant="rectangular" height={200} />
+      <CardContent>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Skeleton variant="text" width="70%" height={24} />
+          <Skeleton variant="rounded" width={60} height={20} />
+        </Box>
+        <Skeleton variant="text" width={80} height={28} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width={120} height={20} />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -171,83 +249,128 @@ export function MyListings({
   items, 
   loading, 
   onItemClick,
+  onAddItem,
   className = '' 
 }: MyListingsProps) {
   // Loading state
   if (loading) {
     return (
-      <div className={`space-y-4 ${className}`}>
-        <div className="flex items-center justify-between">
-          <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
-        </div>
+      <Box className={className}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Skeleton variant="text" width={150} height={32} />
+          <Skeleton variant="text" width={80} height={24} />
+        </Stack>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <Grid container spacing={3}>
           {Array.from({ length: 8 }).map((_, index) => (
-            <ItemCardSkeleton key={index} />
+            <Grid key={index} sx={{ width: { xs: '100%', sm: '50%', md: '33.333%', lg: '25%' } }}>
+              <ItemCardSkeleton />
+            </Grid>
           ))}
-        </div>
-      </div>
+        </Grid>
+      </Box>
     );
   }
 
   // Empty state
   if (items.length === 0) {
     return (
-      <div className={`text-center py-12 ${className}`}>
-        <svg 
-          className="mx-auto h-12 w-12 text-gray-400 mb-4" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
+      <Box 
+        className={className}
+        sx={{ 
+          textAlign: 'center', 
+          py: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
+        }}
+      >
+        <Box 
+          sx={{ 
+            width: 64, 
+            height: 64, 
+            borderRadius: 2,
+            backgroundColor: 'grey.100',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 3
+          }}
         >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={2} 
-            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" 
-          />
-        </svg>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <ImageIcon sx={{ fontSize: 32, color: 'grey.400' }} />
+        </Box>
+        
+        <Typography variant="h5" component="h3" gutterBottom sx={{ fontWeight: 600 }}>
           No items posted yet
-        </h3>
-        <p className="text-gray-600 mb-4">
-          You haven't posted any items for sale or exchange.
-        </p>
-        <button className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+        </Typography>
+        
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 400 }}>
+          You haven't posted any items for sale or exchange. Start sharing your items with the community!
+        </Typography>
+        
+        <Button 
+          variant="contained" 
+          startIcon={<AddIcon />}
+          onClick={onAddItem}
+          size="large"
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 4,
+            py: 1.5
+          }}
+        >
           Post Your First Item
-        </button>
-      </div>
+        </Button>
+      </Box>
     );
   }
 
   // Items grid
   return (
-    <div className={`space-y-4 ${className}`}>
+    <Box className={className}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">
+      <Stack 
+        direction="row" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        sx={{ mb: 3 }}
+      >
+        <Typography variant="h4" component="h2" sx={{ fontWeight: 600 }}>
           My Listings
-        </h2>
-        <span className="text-sm text-gray-600">
-          {items.length} {items.length === 1 ? 'item' : 'items'}
-        </span>
-      </div>
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            {items.length} {items.length === 1 ? 'item' : 'items'}
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={onAddItem}
+            size="small"
+            sx={{
+              textTransform: 'none',
+              borderRadius: 2
+            }}
+          >
+            Add Item
+          </Button>
+        </Box>
+      </Stack>
 
       {/* Items Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <Grid container spacing={3}>
         {items.map((item) => (
-          <ItemCard
-            key={item.itemId}
-            item={item}
-            onClick={onItemClick}
-          />
+          <Grid key={item.itemId} sx={{ width: { xs: '100%', sm: '50%', md: '33.333%', lg: '25%' } }}>
+            <ItemCard
+              item={item}
+              onClick={onItemClick}
+            />
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Box>
   );
 }
 

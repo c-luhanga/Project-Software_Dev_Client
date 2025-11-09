@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Paper, 
@@ -26,9 +27,7 @@ import { useAppDispatch, useAppSelector } from '../../../hooks/redux';
 import {
   fetchProfileThunk,
   updateProfileThunk,
-  fetchMyItemsThunk,
   selectProfile,
-  selectProfileItems,
   selectIsProfileLoading,
   selectProfileError,
   selectIsUpdating,
@@ -38,6 +37,11 @@ import {
   clearError,
   clearUpdateError
 } from '../../../store/profileSlice';
+import {
+  listMyItemsThunk,
+  selectMyItems,
+  selectIsItemsLoading
+} from '../../../store/itemsSlice';
 import {
   ProfileHeader,
   ProfileEditForm,
@@ -125,13 +129,15 @@ function AccessibleSnackbar({
  */
 export function ProfilePage() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Redux state selectors
   const profile = useAppSelector(selectProfile);
-  const items = useAppSelector(selectProfileItems);
+  const items = useAppSelector(selectMyItems);
   const isLoading = useAppSelector(selectIsProfileLoading);
+  const isItemsLoading = useAppSelector(selectIsItemsLoading);
   const error = useAppSelector(selectProfileError);
   const isUpdating = useAppSelector(selectIsUpdating);
   const updateError = useAppSelector(selectUpdateError);
@@ -163,7 +169,7 @@ export function ProfilePage() {
   // Load profile and items on mount (SRP, DIP via thunks)
   useEffect(() => {
     dispatch(fetchProfileThunk());
-    dispatch(fetchMyItemsThunk());
+    dispatch(listMyItemsThunk());
   }, [dispatch]);
 
   // Watch for successful profile updates (UX: Success notifications)
@@ -249,8 +255,13 @@ export function ProfilePage() {
 
   // Handle item click navigation
   const handleItemClick = (item: any) => {
-    // TODO: Navigate to item detail page
-    console.log('Navigate to item:', item.itemId);
+    // Navigate to item detail page
+    navigate(`/items/${item.itemId}`);
+  };
+
+  // Handle add new item navigation
+  const handleAddItem = () => {
+    navigate('/sell');
   };
 
   // Handle error dismissal
@@ -548,8 +559,9 @@ export function ProfilePage() {
           >
             <MyListings
               items={items}
-              loading={isLoading}
+              loading={isItemsLoading}
               onItemClick={handleItemClick}
+              onAddItem={handleAddItem}
             />
           </Paper>
         </Box>

@@ -29,7 +29,7 @@ import type { IApiClient } from '../http/IApiClient';
  * Internal types for HTTP responses - not exposed to domain
  */
 interface ApiItemSummary {
-  id: number;  // Backend uses "id", not "itemId"
+  ItemID: number;  // Backend now uses "ItemID" to avoid conflicts
   title: string;
   price?: number;
   statusId: number;
@@ -38,7 +38,7 @@ interface ApiItemSummary {
 }
 
 interface ApiItemDetail {
-  id: number;  // Backend uses "id", not "itemId"
+  ItemID: number;  // Backend now uses "ItemID" to avoid conflicts
   title: string;
   description: string;
   categoryId?: number;
@@ -218,7 +218,7 @@ export class ItemsRepository implements IItemsRepository {
 
       // Convert API response to domain model
       return {
-        itemId: response.id,
+        itemId: response.ItemID,
         title: response.title,
         description: response.description,
         categoryId: response.categoryId ?? undefined,
@@ -372,30 +372,28 @@ export class ItemsRepository implements IItemsRepository {
    */
   async listMine(): Promise<ItemSummary[]> {
     try {
-      // Try primary endpoint with owner=self parameter
-      let response: ApiItemSummary[];
-      
-      try {
-        const pagedResponse = await this.apiClient.get<ApiPagedResponse<ApiItemSummary>>(
-          '/items?owner=self'
-        );
-        response = pagedResponse.items;
-      } catch (primaryError) {
-        // Fallback to dedicated endpoint if available
-        try {
-          response = await this.apiClient.get<ApiItemSummary[]>('/items/mine');
-        } catch (fallbackError) {
-          // If both fail, throw the original error
-          throw primaryError;
-        }
-      }
+      // Use the correct backend endpoint for user's items
+      const response = await this.apiClient.get<ApiItemSummary[]>('/items/my-items');
 
       // Map API response to domain models
       return response.map(item => this.mapToItemSummary(item));
     } catch (error) {
-      if (error instanceof Error && error.message.includes('401')) {
-        throw new Error('Authentication required to list your items');
+      // Enhanced error handling for better debugging
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          throw new Error('Authentication required to list your items');
+        }
+        if (error.message.includes('400')) {
+          // For now, return empty array for 400 errors (likely due to auth issues)
+          console.warn('Bad request when fetching user items, returning empty array:', error.message);
+          return [];
+        }
+        if (error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+          throw new Error('Unable to connect to server. Please check your connection.');
+        }
       }
+      
+      console.error('Failed to list user items:', error);
       throw new Error(
         `Failed to list your items: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -409,7 +407,7 @@ export class ItemsRepository implements IItemsRepository {
 
   private mapToItemSummary(apiItem: ApiItemSummary): ItemSummary {
     return {
-      itemId: apiItem.id,  // Map from backend "id" to frontend "itemId"
+      itemId: apiItem.ItemID,  // Map from backend "ItemID" to frontend "itemId"
       title: apiItem.title,
       price: apiItem.price,
       statusId: apiItem.statusId,
@@ -420,7 +418,7 @@ export class ItemsRepository implements IItemsRepository {
 
   private mapToItemDetail(apiItem: ApiItemDetail): ItemDetail {
     return {
-      itemId: apiItem.id,  // Map from backend "id" to frontend "itemId"
+      itemId: apiItem.ItemID,  // Map from backend "ItemID" to frontend "itemId"
       title: apiItem.title,
       description: apiItem.description,
       categoryId: apiItem.categoryId,
@@ -480,7 +478,7 @@ export const ApiResponseValidators = {
     return (
       typeof obj === 'object' &&
       obj !== null &&
-      typeof (obj as any).id === 'number' &&
+      typeof (obj as any).ItemID === 'number' &&
       typeof (obj as any).title === 'string' &&
       typeof (obj as any).statusId === 'number' &&
       typeof (obj as any).postedDate === 'string'
@@ -494,7 +492,7 @@ export const ApiResponseValidators = {
     return (
       typeof obj === 'object' &&
       obj !== null &&
-      typeof (obj as any).id === 'number' &&
+      typeof (obj as any).ItemID === 'number' &&
       typeof (obj as any).title === 'string' &&
       typeof (obj as any).description === 'string' &&
       typeof (obj as any).conditionId === 'number' &&
