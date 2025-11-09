@@ -109,6 +109,14 @@ const ItemDetailPage: React.FC = () => {
     }
   }, [currentItem, currentImageIndex]);
 
+  // Reset image index when images change (e.g., after upload)
+  useEffect(() => {
+    if (currentItem?.images?.length && currentImageIndex >= currentItem.images.length) {
+      console.log('🔄 Resetting image index:', { currentImageIndex, imageCount: currentItem.images.length });
+      setCurrentImageIndex(0);
+    }
+  }, [currentItem?.images?.length, currentImageIndex]);
+
   /**
    * Display snackbar with message
    * Centralized feedback system following SRP
@@ -296,15 +304,21 @@ const ItemDetailPage: React.FC = () => {
    * Handle image navigation
    */
   const handlePreviousImage = () => {
-    setCurrentImageIndex(prev => 
-      prev === 0 ? (currentItem?.images?.length || 1) - 1 : prev - 1
-    );
+    console.log('⬅️ Previous image clicked:', { currentIndex: currentImageIndex, totalImages: currentItem?.images?.length });
+    setCurrentImageIndex(prev => {
+      const newIndex = prev === 0 ? (currentItem?.images?.length || 1) - 1 : prev - 1;
+      console.log('⬅️ New index:', newIndex);
+      return newIndex;
+    });
   };
 
   const handleNextImage = () => {
-    setCurrentImageIndex(prev => 
-      prev === (currentItem?.images?.length || 1) - 1 ? 0 : prev + 1
-    );
+    console.log('➡️ Next image clicked:', { currentIndex: currentImageIndex, totalImages: currentItem?.images?.length });
+    setCurrentImageIndex(prev => {
+      const newIndex = prev === (currentItem?.images?.length || 1) - 1 ? 0 : prev + 1;
+      console.log('➡️ New index:', newIndex);
+      return newIndex;
+    });
   };
 
   /**
