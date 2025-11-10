@@ -30,7 +30,8 @@ import {
   Sell as SellIcon,
   Edit as EditIcon,
   MoreVert as MoreVertIcon,
-  PhotoCamera as PhotoCameraIcon
+  PhotoCamera as PhotoCameraIcon,
+  HourglassEmpty as PendingIcon
 } from '@mui/icons-material';
 import type { AppDispatch } from '../../../store/store';
 import {
@@ -38,6 +39,7 @@ import {
   getItemThunk,
   uploadItemImagesThunk,
   markItemSoldThunk,
+  updateItemStatusThunk,
   updateItemThunk,
   clearError,
   selectMyItems,
@@ -47,7 +49,7 @@ import {
 import type { ItemSummary, UpdateItemCommand } from '../../../domain/items/contracts';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemImage } from '../../components/common/ItemImage';
-import { getStatusLabel, getStatusColor } from '../../../utils/itemStatus';
+import { getStatusLabel, getStatusColor, ITEM_STATUS } from '../../../utils/itemStatus';
 
 /**
  * My Listings Page Container Component
@@ -148,24 +150,100 @@ const MyListingsPage: React.FC = () => {
   };
 
   /**
-   * Handle marking item as sold
+   * Handle marking item as sold with proper workflow
+   * Items must be in Pending status before they can be marked as sold
    */
   const handleMarkSold = async (itemId: number) => {
     try {
-      const result = await dispatch(markItemSoldThunk(itemId));
-
-      if (markItemSoldThunk.fulfilled.match(result)) {
-        setSnackbarMessage('Item marked as sold!');
-        setSnackbarSeverity('success');
-        setShowSnackbar(true);
-        
-        // Refresh the listings to show updated status
-        dispatch(listMyItemsThunk());
-      } else if (markItemSoldThunk.rejected.match(result)) {
-        throw new Error(result.error.message || 'Failed to mark item as sold');
+      // Find the current item to check its status
+      const currentItem = myItems.find(item => item.itemId === itemId);
+      if (!currentItem) {
+        throw new Error('Item not found');
       }
+
+      // Check current status and follow proper workflow
+      if (currentItem.statusId === ITEM_STATUS.ACTIVE) {
+        // Step 1: Mark as Pending first
+        const pendingResult = await dispatch(updateItemStatusThunk({ 
+          itemId, 
+          statusId: ITEM_STATUS.PENDING 
+        }));
+
+        if (updateItemStatusThunk.rejected.match(pendingResult)) {
+          throw new Error(pendingResult.error.message || 'Failed to mark item as pending');
+        }
+
+        // Step 2: Then mark as Sold
+        const soldResult = await dispatch(markItemSoldThunk(itemId));
+        
+        if (markItemSoldThunk.rejected.match(soldResult)) {
+          throw new Error(soldResult.error.message || 'Failed to mark item as sold');
+        }
+      } else if (currentItem.statusId === ITEM_STATUS.PENDING) {
+        // Item is already pending, can mark as sold directly
+        const result = await dispatch(markItemSoldThunk(itemId));
+        
+        if (markItemSoldThunk.rejected.match(result)) {
+          throw new Error(result.error.message || 'Failed to mark item as sold');
+        }
+      } else {
+        throw new Error(`Item cannot be marked as sold. Current status: ${getStatusLabel(currentItem.statusId)}`);
+      }
+
+      // Success message
+      setSnackbarMessage('Item marked as sold!');
+      setSnackbarSeverity('success');
+      setShowSnackbar(true);
+      
+      // Refresh the listings to show updated status
+      dispatch(listMyItemsThunk());
+      
     } catch (error) {
       setSnackbarMessage(error instanceof Error ? error.message : 'Failed to mark item as sold');
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
+    
+    handleCloseMenu();
+  };
+
+  /**
+   * Handle marking item as pending
+   * Transitions Active items to Pending status for sale preparation
+   */
+  const handleMarkPending = async (itemId: number) => {
+    try {
+      // Find the current item to check its status
+      const currentItem = myItems.find(item => item.itemId === itemId);
+      if (!currentItem) {
+        throw new Error('Item not found');
+      }
+
+      // Check if item can be marked as pending
+      if (currentItem.statusId !== ITEM_STATUS.ACTIVE) {
+        throw new Error(`Item cannot be marked as pending. Current status: ${getStatusLabel(currentItem.statusId)}`);
+      }
+
+      // Mark as Pending
+      const result = await dispatch(updateItemStatusThunk({ 
+        itemId, 
+        statusId: ITEM_STATUS.PENDING 
+      }));
+
+      if (updateItemStatusThunk.rejected.match(result)) {
+        throw new Error(result.error.message || 'Failed to mark item as pending');
+      }
+
+      // Success message
+      setSnackbarMessage('Item marked as pending!');
+      setSnackbarSeverity('success');
+      setShowSnackbar(true);
+      
+      // Refresh the listings to show updated status
+      dispatch(listMyItemsThunk());
+      
+    } catch (error) {
+      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to mark item as pending');
       setSnackbarSeverity('error');
       setShowSnackbar(true);
     }
@@ -436,8 +514,26 @@ const MyListingsPage: React.FC = () => {
         </MenuItem>
         
         <MenuItem 
+          onClick={() => menuItemId && handleMarkPending(menuItemId)}
+          disabled={(() => {
+            const item = myItems.find(item => item.itemId === menuItemId);
+            if (!item) return true;
+            // Enable only for Active items
+            return item.statusId !== ITEM_STATUS.ACTIVE;
+          })()}
+        >
+          <PendingIcon sx={{ mr: 1 }} fontSize="small" />
+          Mark as Pending
+        </MenuItem>
+        
+        <MenuItem 
           onClick={() => menuItemId && handleMarkSold(menuItemId)}
-          disabled={myItems.find(item => item.itemId === menuItemId)?.statusId === 2}
+          disabled={(() => {
+            const item = myItems.find(item => item.itemId === menuItemId);
+            if (!item) return true;
+            // Enable for Active and Pending items only
+            return item.statusId !== ITEM_STATUS.ACTIVE && item.statusId !== ITEM_STATUS.PENDING;
+          })()}
         >
           <SellIcon sx={{ mr: 1 }} fontSize="small" />
           Mark as Sold

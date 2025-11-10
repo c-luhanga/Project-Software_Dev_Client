@@ -382,6 +382,35 @@ export class ItemsRepository implements IItemsRepository {
   }
 
   /**
+   * Update item status
+   * 
+   * Maps to: PATCH /api/items/{id}/status?statusId={statusId}
+   * 
+   * @param itemId The item ID to update
+   * @param statusId The new status ID (1=Active, 2=Pending, 3=Sold, 4=Withdrawn)
+   * @returns Promise indicating operation completion
+   * @throws Error if item not found, unauthorized, or invalid status
+   */
+  async updateStatus(itemId: number, statusId: number): Promise<void> {
+    try {
+      await this.apiClient.patch<void>(`/items/${itemId}/status?statusId=${statusId}`);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('404')) {
+        throw new Error(`Item with ID ${itemId} not found`);
+      }
+      if (error instanceof Error && error.message.includes('403')) {
+        throw new Error(`Unauthorized to update status for item ${itemId}`);
+      }
+      if (error instanceof Error && error.message.includes('400')) {
+        throw new Error(`Invalid status ${statusId} for item ${itemId}`);
+      }
+      throw new Error(
+        `Failed to update status for item ${itemId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
    * Get current user's items
    * 
    * Maps to: GET /api/items?owner=self (fallback: GET /api/items/mine)

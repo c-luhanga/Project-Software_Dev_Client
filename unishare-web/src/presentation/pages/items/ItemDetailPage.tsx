@@ -31,13 +31,15 @@ import {
   ArrowBack as ArrowBackIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  HourglassEmpty as PendingIcon
 } from '@mui/icons-material';
 import type { AppDispatch } from '../../../store/store';
 import {
   getItemThunk,
   uploadItemImagesThunk,
   markItemSoldThunk,
+  updateItemStatusThunk,
   updateItemThunk,
   clearError,
   selectCurrentItem,
@@ -57,7 +59,7 @@ import {
 import AdminActions from '../../components/admin/AdminActions';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemDetailActionsContainer } from '../../components/items/ItemDetailActionsContainer';
-import { getStatusLabel, getStatusColor, isItemSold } from '../../../utils/itemStatus';
+import { getStatusLabel, getStatusColor, isItemSold, ITEM_STATUS } from '../../../utils/itemStatus';
 import { ItemImage } from '../../components/common/ItemImage';
 
 /**
@@ -237,24 +239,83 @@ const ItemDetailPage: React.FC = () => {
   };
 
   /**
-   * Handle mark as sold action
+   * Handle mark as sold action with proper workflow
+   * Items must be in Pending status before they can be marked as sold
    */
   const handleMarkSold = async () => {
     if (!currentItem) return;
 
     try {
-      const result = await dispatch(markItemSoldThunk(currentItem.itemId));
+      // Check current status and follow proper workflow
+      if (currentItem.statusId === ITEM_STATUS.ACTIVE) {
+        // Step 1: Mark as Pending first
+        const pendingResult = await dispatch(updateItemStatusThunk({ 
+          itemId: currentItem.itemId, 
+          statusId: ITEM_STATUS.PENDING 
+        }));
 
-      if (markItemSoldThunk.fulfilled.match(result)) {
-        showFeedback('Item marked as sold! Buyers will see this update.');
+        if (updateItemStatusThunk.rejected.match(pendingResult)) {
+          throw new Error(pendingResult.error.message || 'Failed to mark item as pending');
+        }
+
+        // Step 2: Then mark as Sold
+        const soldResult = await dispatch(markItemSoldThunk(currentItem.itemId));
         
-        // Refresh the item to show updated status
-        dispatch(getItemThunk(currentItem.itemId));
-      } else if (markItemSoldThunk.rejected.match(result)) {
-        throw new Error(result.error.message || 'Failed to mark item as sold');
+        if (markItemSoldThunk.rejected.match(soldResult)) {
+          throw new Error(soldResult.error.message || 'Failed to mark item as sold');
+        }
+      } else if (currentItem.statusId === ITEM_STATUS.PENDING) {
+        // Item is already pending, can mark as sold directly
+        const result = await dispatch(markItemSoldThunk(currentItem.itemId));
+        
+        if (markItemSoldThunk.rejected.match(result)) {
+          throw new Error(result.error.message || 'Failed to mark item as sold');
+        }
+      } else {
+        throw new Error(`Item cannot be marked as sold. Current status: ${getStatusLabel(currentItem.statusId)}`);
       }
+
+      // Success message
+      showFeedback('Item marked as sold! Buyers will see this update.');
+      
+      // Refresh the item to show updated status
+      dispatch(getItemThunk(currentItem.itemId));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to mark item as sold';
+      showFeedback(errorMessage, 'error');
+    }
+  };
+
+  /**
+   * Handle mark as pending action
+   * Transitions Active items to Pending status for sale preparation
+   */
+  const handleMarkPending = async () => {
+    if (!currentItem) return;
+
+    try {
+      // Check if item can be marked as pending
+      if (currentItem.statusId !== ITEM_STATUS.ACTIVE) {
+        throw new Error(`Item cannot be marked as pending. Current status: ${getStatusLabel(currentItem.statusId)}`);
+      }
+
+      // Mark as Pending
+      const result = await dispatch(updateItemStatusThunk({ 
+        itemId: currentItem.itemId, 
+        statusId: ITEM_STATUS.PENDING 
+      }));
+
+      if (updateItemStatusThunk.rejected.match(result)) {
+        throw new Error(result.error.message || 'Failed to mark item as pending');
+      }
+
+      // Success message
+      showFeedback('Item marked as pending! You can now mark it as sold when ready.');
+      
+      // Refresh the item to show updated status
+      dispatch(getItemThunk(currentItem.itemId));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to mark item as pending';
       showFeedback(errorMessage, 'error');
     }
   };
@@ -750,6 +811,19 @@ const ItemDetailPage: React.FC = () => {
                     >
                       Edit
                     </Button>
+                    
+                    {/* Mark as Pending Button - Only for Active items */}
+                    {currentItem.statusId === ITEM_STATUS.ACTIVE && (
+                      <Button
+                        variant="outlined"
+                        startIcon={<PendingIcon />}
+                        onClick={handleMarkPending}
+                        disabled={!userPermissions.canMarkSold}
+                        sx={{ flex: 1 }}
+                      >
+                        Mark as Pending
+                      </Button>
+                    )}
                     
                     {/* Mark as Sold Button */}
                     <Button

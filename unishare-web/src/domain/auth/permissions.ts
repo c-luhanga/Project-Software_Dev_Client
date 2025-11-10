@@ -95,7 +95,7 @@ export function canEditItem(user: UserProfile, item: ItemDetail): boolean {
  * Business Rules:
  * - Item owner can mark their item as sold
  * - Admins can mark any item as sold
- * - Only active items can be marked as sold (statusId === 1)
+ * - Only active (statusId === 1) or pending (statusId === 2) items can be marked as sold
  * 
  * @param user User profile with ID and admin status
  * @param item Item details with seller and status information
@@ -107,6 +107,9 @@ export function canEditItem(user: UserProfile, item: ItemDetail): boolean {
  * const activeItem = { itemId: 456, sellerId: 123, statusId: 1 };
  * canMarkSold(user, activeItem); // Returns true
  * 
+ * const pendingItem = { itemId: 789, sellerId: 123, statusId: 2 };
+ * canMarkSold(user, pendingItem); // Returns true
+ * 
  * const soldItem = { itemId: 456, sellerId: 123, statusId: 3 };
  * canMarkSold(user, soldItem); // Returns false (already sold)
  * ```
@@ -117,17 +120,17 @@ export function canMarkSold(user: UserProfile, item: ItemDetail): boolean {
     return false;
   }
 
-  // Item must be active (statusId === 1) to be marked as sold
-  if (item.statusId !== 1) {
+  // Item must be active (statusId === 1) or pending (statusId === 2) to be marked as sold
+  if (item.statusId !== 1 && item.statusId !== 2) {
     return false;
   }
 
-  // Admins can mark any active item as sold
+  // Admins can mark any active/pending item as sold
   if (user.isAdmin) {
     return true;
   }
 
-  // Item owners can mark their own active items as sold
+  // Item owners can mark their own active/pending items as sold
   return user.userId === item.sellerId;
 }
 

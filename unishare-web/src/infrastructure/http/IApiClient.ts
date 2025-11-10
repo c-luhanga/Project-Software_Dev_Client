@@ -38,6 +38,15 @@ export interface IApiClient {
   put<T = unknown>(url: string, body?: unknown): Promise<T>;
 
   /**
+   * Perform HTTP PATCH request
+   * @param url Relative or absolute URL
+   * @param body Optional request body
+   * @returns Promise resolving to typed response data
+   * @throws Error for network/HTTP errors
+   */
+  patch<T = unknown>(url: string, body?: unknown): Promise<T>;
+
+  /**
    * Perform HTTP DELETE request
    * @param url Relative or absolute URL
    * @returns Promise resolving to typed response data

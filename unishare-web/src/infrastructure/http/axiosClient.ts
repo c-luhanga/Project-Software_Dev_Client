@@ -124,6 +124,18 @@ export class AxiosApiClient implements IApiClient {
   }
 
   /**
+   * Perform HTTP PATCH request
+   */
+  async patch<T = unknown>(url: string, body?: unknown): Promise<T> {
+    try {
+      const response = await this.axiosInstance.patch<T>(url, body);
+      return response.data;
+    } catch (error) {
+      throw error; // Already normalized by interceptor
+    }
+  }
+
+  /**
    * Perform HTTP DELETE request
    */
   async delete<T = unknown>(url: string): Promise<T> {

@@ -18,6 +18,7 @@ export function createProductionAdminRepository(): IAdminRepository {
     get: async () => { throw new Error('Not implemented'); },
     post: async () => { throw new Error('Not implemented'); },
     put: async () => { throw new Error('Not implemented'); },
+    patch: async () => { throw new Error('Not implemented'); },
     delete: async () => { throw new Error('Not implemented'); },
     setToken: () => { /* implementation */ },
     getToken: () => null
@@ -51,6 +52,10 @@ export class MockApiClient implements IApiClient {
   }
 
   async put<T>(): Promise<T> {
+    throw new Error('Not implemented in mock');
+  }
+
+  async patch<T>(): Promise<T> {
     throw new Error('Not implemented in mock');
   }
 

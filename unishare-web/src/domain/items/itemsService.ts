@@ -382,6 +382,33 @@ export class ItemsService implements IItemsService {
   }
 
   /**
+   * Update item status with business validation
+   * 
+   * Applies business rules for status transitions
+   * Can be extended with workflow rules (OCP)
+   * 
+   * @param itemId The item ID to update
+   * @param statusId The new status ID (1=Active, 2=Pending, 3=Sold, 4=Withdrawn)
+   * @returns Promise indicating successful business operation
+   * @throws BusinessRuleError if status transition not allowed
+   */
+  async updateStatus(itemId: number, statusId: number): Promise<void> {
+    // Future extension point: Add business rules for status transitions
+    // - Validate transition rules (e.g., Active -> Pending -> Sold)
+    // - Check user permissions for specific transitions
+    // - Validate item state before transition
+
+    try {
+      await this.repository.updateStatus(itemId, statusId);
+    } catch (error) {
+      throw new BusinessRuleError(
+        `Failed to update item status: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'UPDATE_STATUS_ERROR'
+      );
+    }
+  }
+
+  /**
    * Get current user's items with business logic
    * 
    * Pass-through operation for user-specific data

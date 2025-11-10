@@ -143,6 +143,21 @@ export const markItemSoldThunk = createAsyncThunk<
 );
 
 /**
+ * Update item status thunk
+ */
+export const updateItemStatusThunk = createAsyncThunk<
+  void,
+  { itemId: number; statusId: number },
+  { extra: { container: { itemsService: IItemsService } } }
+>(
+  'items/updateItemStatus',
+  async ({ itemId, statusId }, { extra }) => {
+    const itemsService = extra.container.itemsService;
+    await itemsService.updateStatus(itemId, statusId);
+  }
+);
+
+/**
  * Update item thunk
  */
 export const updateItemThunk = createAsyncThunk<
@@ -301,6 +316,21 @@ const itemsSlice = createSlice({
         // Item marked as sold - UI may want to refresh lists
       })
       .addCase(markItemSoldThunk.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message;
+      });
+
+    // Update item status
+    builder
+      .addCase(updateItemStatusThunk.pending, (state) => {
+        state.status = 'loading';
+        state.error = undefined;
+      })
+      .addCase(updateItemStatusThunk.fulfilled, (state) => {
+        state.status = 'succeeded';
+        // Item status updated - UI may want to refresh lists
+      })
+      .addCase(updateItemStatusThunk.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message;
       });

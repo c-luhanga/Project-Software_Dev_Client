@@ -240,6 +240,16 @@ export interface IItemsRepository {
   markSold(itemId: number): Promise<void>;
 
   /**
+   * Update item status
+   * 
+   * @param itemId The item ID to update
+   * @param statusId The new status ID (1=Active, 2=Pending, 3=Sold, 4=Withdrawn)
+   * @returns Promise indicating operation completion
+   * @throws Error if item not found, unauthorized, or invalid status
+   */
+  updateStatus(itemId: number, statusId: number): Promise<void>;
+
+  /**
    * Get current user's items
    * 
    * @returns Promise resolving to array of user's item summaries
@@ -347,6 +357,18 @@ export interface IItemsService {
    * @throws AuthorizationError if user cannot modify item
    */
   markSold(itemId: number): Promise<void>;
+
+  /**
+   * Update item status with business validation
+   * Applies business rules for status transitions
+   * 
+   * @param itemId The item ID to update
+   * @param statusId The new status ID (1=Active, 2=Pending, 3=Sold, 4=Withdrawn)
+   * @returns Promise indicating successful business operation
+   * @throws BusinessLogicError if status transition not allowed
+   * @throws AuthorizationError if user cannot modify item
+   */
+  updateStatus(itemId: number, statusId: number): Promise<void>;
 
   /**
    * Get current user's items with business logic
