@@ -27,9 +27,10 @@ import type { IApiClient } from '../http/IApiClient';
 /**
  * API Response Types
  * Internal types for HTTP responses - not exposed to domain
+ * Updated to match proper DTO response format with camelCase field names
  */
 interface ApiItemSummary {
-  id: number;  // Backend actually uses lowercase "id"
+  id: number;  // Backend DTOs use camelCase field names
   title: string;
   price?: number;
   statusId: number;
@@ -38,7 +39,7 @@ interface ApiItemSummary {
 }
 
 interface ApiItemDetail {
-  id: number;  // Backend actually uses lowercase "id"
+  id: number;  // Backend DTOs use camelCase field names
   title: string;
   description: string;
   categoryId?: number;
@@ -176,7 +177,7 @@ export class ItemsRepository implements IItemsRepository {
       console.log('🔍 Creating item with request body:', requestBody);
       console.log('🔐 Auth token exists:', !!this.apiClient.getToken());
 
-      // Backend returns ItemDto with 'id' property, not 'itemId'
+      // Backend returns ItemDto with 'id' property
       const response = await this.apiClient.post<ApiItemDetail>(
         '/items',
         requestBody
@@ -526,10 +527,10 @@ export const ApiResponseValidators = {
     return (
       typeof obj === 'object' &&
       obj !== null &&
-      typeof (obj as any).id === 'number' &&
-      typeof (obj as any).title === 'string' &&
-      typeof (obj as any).statusId === 'number' &&
-      typeof (obj as any).postedDate === 'string'
+      typeof (obj as any).ItemID === 'number' &&
+      typeof (obj as any).Title === 'string' &&
+      typeof (obj as any).StatusID === 'number' &&
+      typeof (obj as any).PostedDate === 'string'
     );
   },
 
@@ -540,14 +541,14 @@ export const ApiResponseValidators = {
     return (
       typeof obj === 'object' &&
       obj !== null &&
-      typeof (obj as any).id === 'number' &&
-      typeof (obj as any).title === 'string' &&
-      typeof (obj as any).description === 'string' &&
-      typeof (obj as any).conditionId === 'number' &&
-      typeof (obj as any).statusId === 'number' &&
-      typeof (obj as any).sellerId === 'number' &&
-      typeof (obj as any).postedDate === 'string' &&
-      (Array.isArray((obj as any).images) || (obj as any).images === undefined)
+      typeof (obj as any).ItemID === 'number' &&
+      typeof (obj as any).Title === 'string' &&
+      typeof (obj as any).Description === 'string' &&
+      typeof (obj as any).ConditionID === 'number' &&
+      typeof (obj as any).StatusID === 'number' &&
+      typeof (obj as any).SellerID === 'number' &&
+      typeof (obj as any).PostedDate === 'string' &&
+      (Array.isArray((obj as any).Images) || (obj as any).Images === undefined)
     );
   },
 

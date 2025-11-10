@@ -174,7 +174,7 @@ const ItemDetailPage: React.FC = () => {
    */
   useEffect(() => {
     if (!id) {
-      console.error('ItemDetailPage: No ID parameter found in URL');
+      // Silently return - this can happen during React Strict Mode double effects
       return;
     }
     

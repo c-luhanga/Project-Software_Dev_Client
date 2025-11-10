@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Image as ImageIcon } from '@mui/icons-material';
 import type { ItemSummary } from '../../../domain/items/contracts';
+import { getStatusLabel, getStatusColor } from '../../../utils/itemStatus';
 
 /**
  * My Listings props following Interface Segregation Principle (ISP)
@@ -52,25 +53,11 @@ interface ItemCardProps {
 
 /**
  * Status Badge Component
- * Displays item status with appropriate styling
+ * Displays item status with appropriate styling using proper status utilities
  */
 function StatusBadge({ statusId }: { statusId: number }) {
-  const getStatusInfo = (id: number) => {
-    switch (id) {
-      case 1:
-        return { label: 'Available', color: 'success' as const };
-      case 2:
-        return { label: 'Pending', color: 'warning' as const };
-      case 3:
-        return { label: 'Sold', color: 'default' as const };
-      case 4:
-        return { label: 'Withdrawn', color: 'error' as const };
-      default:
-        return { label: 'Unknown', color: 'default' as const };
-    }
-  };
-
-  const { label, color } = getStatusInfo(statusId);
+  const label = getStatusLabel(statusId);
+  const color = getStatusColor(statusId);
 
   return (
     <Chip 

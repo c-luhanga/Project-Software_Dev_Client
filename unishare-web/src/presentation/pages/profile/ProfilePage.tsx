@@ -261,7 +261,7 @@ export function ProfilePage() {
 
   // Handle add new item navigation
   const handleAddItem = () => {
-    navigate('/sell');
+    navigate('/items/sell');
   };
 
   // Handle error dismissal
