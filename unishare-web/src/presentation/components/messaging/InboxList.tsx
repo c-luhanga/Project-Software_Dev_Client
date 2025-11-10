@@ -19,8 +19,7 @@ import {
   Badge,
   Typography,
   Box,
-  CircularProgress,
-  Paper
+  CircularProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PersonIcon from '@mui/icons-material/Person';
@@ -219,24 +218,24 @@ export const InboxList: React.FC<InboxListProps> = ({
   // Handle loading state
   if (loading) {
     return (
-      <Paper sx={{ mt: 2 }}>
+      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <LoadingSkeleton />
-      </Paper>
+      </Box>
     );
   }
 
   // Handle empty state
   if (items.length === 0) {
     return (
-      <Paper sx={{ mt: 2 }}>
+      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <EmptyState />
-      </Paper>
+      </Box>
     );
   }
 
   // Render conversation list
   return (
-    <Paper sx={{ mt: 2 }}>
+    <Box sx={{ height: '100%', overflowY: 'auto' }}>
       <List disablePadding>
         {items.map((item) => (
           <ConversationItem
@@ -246,7 +245,7 @@ export const InboxList: React.FC<InboxListProps> = ({
           />
         ))}
       </List>
-    </Paper>
+    </Box>
   );
 };
 

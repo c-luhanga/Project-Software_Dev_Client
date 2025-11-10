@@ -11,7 +11,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Box,
-  Paper,
   Typography,
   CircularProgress,
   Avatar,
@@ -38,13 +37,26 @@ interface MessageThreadProps {
  * Styled components for message layout
  */
 const ThreadContainer = styled(Box)(({ theme }) => ({
-  height: '400px',
+  height: '100%',
   overflowY: 'auto',
-  padding: theme.spacing(1),
+  padding: theme.spacing(2),
   display: 'flex',
   flexDirection: 'column',
   gap: theme.spacing(1),
-  backgroundColor: theme.palette.background.default,
+  backgroundColor: '#f0f2f5',
+  '&::-webkit-scrollbar': {
+    width: '8px',
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: '#c4c9d0',
+    borderRadius: '4px',
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    backgroundColor: '#8a94a6',
+  },
 }));
 
 const MessageBubble = styled(Box, {
@@ -300,18 +312,18 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   // Handle loading state
   if (loading) {
     return (
-      <Paper sx={{ height: '400px' }}>
+      <Box sx={{ height: '100%', backgroundColor: '#f0f2f5' }}>
         <LoadingSkeleton />
-      </Paper>
+      </Box>
     );
   }
 
   // Handle empty state
   if (messages.length === 0) {
     return (
-      <Paper sx={{ height: '400px' }}>
+      <Box sx={{ height: '100%', backgroundColor: '#f0f2f5' }}>
         <EmptyState />
-      </Paper>
+      </Box>
     );
   }
 
@@ -330,7 +342,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
 
   // Render message thread
   return (
-    <Paper sx={{ height: '400px', overflow: 'hidden' }}>
+    <Box sx={{ height: '100%', backgroundColor: '#f0f2f5', overflow: 'hidden' }}>
       <ThreadContainer 
         ref={scrollRef}
         onScroll={handleScroll}
@@ -344,7 +356,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
           />
         ))}
       </ThreadContainer>
-    </Paper>
+    </Box>
   );
 };
 

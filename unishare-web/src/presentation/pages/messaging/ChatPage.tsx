@@ -80,22 +80,8 @@ const ChatContent = styled(Box)(() => ({
 
 const ThreadContainer = styled(Box)(() => ({
   flex: 1,
-  overflowY: 'auto',
-  padding: '16px',
+  overflow: 'hidden', // Remove scroll here - MessageThread will handle it
   backgroundColor: '#f0f2f5',
-  '&::-webkit-scrollbar': {
-    width: '8px',
-  },
-  '&::-webkit-scrollbar-track': {
-    backgroundColor: 'transparent',
-  },
-  '&::-webkit-scrollbar-thumb': {
-    backgroundColor: '#c4c9d0',
-    borderRadius: '4px',
-  },
-  '&::-webkit-scrollbar-thumb:hover': {
-    backgroundColor: '#8a94a6',
-  },
 }));
 
 const MessageInputContainer = styled(Box)(({ theme }) => ({

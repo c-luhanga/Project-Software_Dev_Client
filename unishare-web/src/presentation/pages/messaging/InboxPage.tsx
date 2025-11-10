@@ -15,7 +15,6 @@ import {
   Container,
   Box,
   Typography,
-  Paper,
   Alert,
   IconButton,
   Tooltip,
@@ -53,14 +52,6 @@ const InboxHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-}));
-
-const InboxCard = styled(Paper)(({ theme }) => ({
-  flex: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-  borderRadius: theme.spacing(2),
 }));
 
 /**
@@ -188,35 +179,14 @@ export const InboxPage: React.FC = () => {
         </Alert>
       )}
 
-      <InboxCard elevation={2}>
-        {/* Empty State */}
-        {!isLoading && !hasConversations && !hasError && (
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            flex={1}
-            p={4}
-          >
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No conversations yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" textAlign="center">
-              Start a conversation by messaging someone about their items
-            </Typography>
-          </Box>
-        )}
-
-        {/* Inbox List */}
-        {(hasConversations || isLoading) && (
-          <InboxList
-            items={inbox?.items || []}
-            loading={isLoading}
-            onOpen={handleConversationOpen}
-          />
-        )}
-      </InboxCard>
+      {/* Content Area */}
+      <Box sx={{ flex: 1, overflow: 'hidden', backgroundColor: '#ffffff', borderRadius: 2 }}>
+        <InboxList
+          items={inbox?.items || []}
+          loading={isLoading}
+          onOpen={handleConversationOpen}
+        />
+      </Box>
     </PageContainer>
   );
 };
