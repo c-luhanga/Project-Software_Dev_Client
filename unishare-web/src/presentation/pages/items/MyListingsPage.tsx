@@ -47,6 +47,7 @@ import {
 import type { ItemSummary, UpdateItemCommand } from '../../../domain/items/contracts';
 import AddImagesDialog from '../../components/items/AddImagesDialog';
 import { ItemImage } from '../../components/common/ItemImage';
+import { getStatusLabel, getStatusColor } from '../../../utils/itemStatus';
 
 /**
  * My Listings Page Container Component
@@ -285,14 +286,13 @@ const MyListingsPage: React.FC = () => {
   };
 
   /**
-   * Get status chip color and label
+   * Get status chip using proper status utilities
    */
   const getStatusChip = (item: ItemSummary) => {
-    // Assuming statusId 2 means sold (this should match your backend logic)
-    if (item.statusId === 2) {
-      return <Chip label="Sold" color="error" size="small" />;
-    }
-    return <Chip label="Available" color="success" size="small" />;
+    const label = getStatusLabel(item.statusId);
+    const color = getStatusColor(item.statusId);
+    
+    return <Chip label={label} color={color} size="small" />;
   };
 
   /**

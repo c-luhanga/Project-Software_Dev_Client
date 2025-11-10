@@ -28,6 +28,7 @@ import {
 } from '../../../store/itemsSlice';
 import type { ItemSummary } from '../../../domain/items/contracts';
 import { ItemImage } from '../../components/common/ItemImage';
+import { getStatusLabel, getStatusColor } from '../../../utils/itemStatus';
 
 /**
  * Home Page / Browse Items Container Component
@@ -110,14 +111,13 @@ const HomePage: React.FC = () => {
   };
 
   /**
-   * Get status chip for item
+   * Get status chip for item using proper status utilities
    */
   const getStatusChip = (item: ItemSummary) => {
-    // Assuming statusId 2 means sold
-    if (item.statusId === 2) {
-      return <Chip label="Sold" color="error" size="small" />;
-    }
-    return <Chip label="Available" color="success" size="small" />;
+    const label = getStatusLabel(item.statusId);
+    const color = getStatusColor(item.statusId);
+    
+    return <Chip label={label} color={color} size="small" />;
   };
 
   return (
