@@ -70,26 +70,6 @@ const ChatHeader = styled(Box)(({ theme }) => ({
   minHeight: 60,
 }));
 
-const ChatContent = styled(Box)(() => ({
-  flex: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-  backgroundColor: '#f0f2f5',
-}));
-
-const ThreadContainer = styled(Box)(() => ({
-  flex: 1,
-  overflow: 'hidden', // Remove scroll here - MessageThread will handle it
-  backgroundColor: '#f0f2f5',
-}));
-
-const MessageInputContainer = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(2),
-  backgroundColor: '#ffffff',
-  borderTop: '1px solid #e4e6ea',
-}));
-
 const LoadMoreContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
@@ -335,7 +315,14 @@ export const ChatPage: React.FC = () => {
         </Alert>
       )}
 
-      <ChatContent>
+      {/* Content area with flex layout for scrolling */}
+      <Box
+        flex={1}
+        display="flex"
+        flexDirection="column"
+        overflow="hidden"
+        minHeight={0}
+      >
         {/* Load More Button (for pagination) */}
         {hasMoreMessages && !isLoading && (
           <LoadMoreContainer>
@@ -349,43 +336,40 @@ export const ChatPage: React.FC = () => {
           </LoadMoreContainer>
         )}
 
-        {/* Message Thread */}
-        <ThreadContainer>
-          {hasMessages || isLoading ? (
-            <MessageThread
-              messages={thread?.items || []}
-              currentUserId={currentUser?.userId || 0}
-              loading={isLoading && currentPage === 1}
-            />
-          ) : (
-            <Box
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              justifyContent="center"
-              height="100%"
-              p={4}
-            >
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No messages yet
-              </Typography>
-              <Typography variant="body2" color="text.secondary" textAlign="center">
-                Start the conversation by sending a message below
-              </Typography>
-            </Box>
-          )}
-        </ThreadContainer>
+        {/* Message Thread - Direct placement without extra containers */}
+        {hasMessages || isLoading ? (
+          <MessageThread
+            messages={thread?.items || []}
+            currentUserId={currentUser?.userId || 0}
+            loading={isLoading && currentPage === 1}
+          />
+        ) : (
+          <Box
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            flex={1}
+            p={4}
+            sx={{ backgroundColor: '#f0f2f5' }}
+          >
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No messages yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" textAlign="center">
+              Start the conversation by sending a message below
+            </Typography>
+          </Box>
+        )}
+      </Box>
 
-        {/* Message Input */}
-        <MessageInputContainer>
-          <MessageInput
+      {/* Message Input - Direct placement */}
+      <MessageInput
             onSend={handleSendMessage}
             onSendImage={handleSendImage}
             sending={sending}
             maxLength={4000}
           />
-        </MessageInputContainer>
-      </ChatContent>
     </PageContainer>
   );
 };

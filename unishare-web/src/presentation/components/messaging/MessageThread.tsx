@@ -37,13 +37,14 @@ interface MessageThreadProps {
  * Styled components for message layout
  */
 const ThreadContainer = styled(Box)(({ theme }) => ({
-  height: '100%',
+  flex: 1,
   overflowY: 'auto',
   padding: theme.spacing(2),
   display: 'flex',
   flexDirection: 'column',
   gap: theme.spacing(1),
   backgroundColor: '#f0f2f5',
+  minHeight: 0, // Important for flex child with overflow
   '&::-webkit-scrollbar': {
     width: '8px',
   },
@@ -312,18 +313,18 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   // Handle loading state
   if (loading) {
     return (
-      <Box sx={{ height: '100%', backgroundColor: '#f0f2f5' }}>
+      <ThreadContainer sx={{ justifyContent: 'center', alignItems: 'center' }}>
         <LoadingSkeleton />
-      </Box>
+      </ThreadContainer>
     );
   }
 
   // Handle empty state
   if (messages.length === 0) {
     return (
-      <Box sx={{ height: '100%', backgroundColor: '#f0f2f5' }}>
+      <ThreadContainer sx={{ justifyContent: 'center', alignItems: 'center' }}>
         <EmptyState />
-      </Box>
+      </ThreadContainer>
     );
   }
 
@@ -342,21 +343,19 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
 
   // Render message thread
   return (
-    <Box sx={{ height: '100%', backgroundColor: '#f0f2f5', overflow: 'hidden' }}>
-      <ThreadContainer 
-        ref={scrollRef}
-        onScroll={handleScroll}
-      >
-        {messagesWithAvatars.map((message, index) => (
-          <MessageItem
-            key={`${message.messageId}-${(message as any).isOptimistic ? 'opt' : 'real'}-${index}`}
-            message={message}
-            isMine={message.isMine}
-            showAvatar={message.showAvatar}
-          />
-        ))}
-      </ThreadContainer>
-    </Box>
+    <ThreadContainer 
+      ref={scrollRef}
+      onScroll={handleScroll}
+    >
+      {messagesWithAvatars.map((message, index) => (
+        <MessageItem
+          key={`${message.messageId}-${(message as any).isOptimistic ? 'opt' : 'real'}-${index}`}
+          message={message}
+          isMine={message.isMine}
+          showAvatar={message.showAvatar}
+        />
+      ))}
+    </ThreadContainer>
   );
 };
 
