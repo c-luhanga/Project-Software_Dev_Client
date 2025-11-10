@@ -29,25 +29,25 @@ import type { IApiClient } from '../http/IApiClient';
  * Internal types for HTTP responses - not exposed to domain
  */
 interface ApiItemSummary {
-  ItemID: number;  // Backend now uses "ItemID" to avoid conflicts
-  Title: string;
-  Price?: number;
-  StatusID: number;
-  PostedDate: string;
+  id: number;  // Backend actually uses lowercase "id"
+  title: string;
+  price?: number;
+  statusId: number;
+  postedDate: string;
   thumbnailUrl?: string;
 }
 
 interface ApiItemDetail {
-  ItemID: number;  // Backend now uses "ItemID" to avoid conflicts
-  Title: string;
-  Description: string;
-  CategoryID?: number;
+  id: number;  // Backend actually uses lowercase "id"
+  title: string;
+  description: string;
+  categoryId?: number;
   categoryName?: string;
-  Price?: number;
-  ConditionID: number;
-  StatusID: number;
-  SellerID: number;
-  PostedDate: string;
+  price?: number;
+  conditionId: number;
+  statusId: number;
+  sellerId: number;
+  postedDate: string;
   images?: string[];  // Images might not be included in the DTO
 }
 
@@ -218,16 +218,16 @@ export class ItemsRepository implements IItemsRepository {
 
       // Convert API response to domain model
       return {
-        itemId: response.ItemID,
-        title: response.Title,
-        description: response.Description,
-        categoryId: response.CategoryID ?? undefined,
+        itemId: response.id,
+        title: response.title,
+        description: response.description,
+        categoryId: response.categoryId ?? undefined,
         categoryName: response.categoryName ?? undefined,
-        price: response.Price ?? undefined,
-        conditionId: response.ConditionID,
-        statusId: response.StatusID,
-        sellerId: response.SellerID,
-        postedDate: response.PostedDate,
+        price: response.price ?? undefined,
+        conditionId: response.conditionId,
+        statusId: response.statusId,
+        sellerId: response.sellerId,
+        postedDate: response.postedDate,
         images: response.images ?? []
       };
     } catch (error) {
@@ -407,27 +407,27 @@ export class ItemsRepository implements IItemsRepository {
 
   private mapToItemSummary(apiItem: ApiItemSummary): ItemSummary {
     return {
-      itemId: apiItem.ItemID,  // Map from backend "ItemID" to frontend "itemId"
-      title: apiItem.Title,
-      price: apiItem.Price,
-      statusId: apiItem.StatusID,
-      postedDate: apiItem.PostedDate,
+      itemId: apiItem.id,  // Map from backend "id" to frontend "itemId"
+      title: apiItem.title,
+      price: apiItem.price,
+      statusId: apiItem.statusId,
+      postedDate: apiItem.postedDate,
       thumbnailUrl: apiItem.thumbnailUrl
     };
   }
 
   private mapToItemDetail(apiItem: ApiItemDetail): ItemDetail {
     return {
-      itemId: apiItem.ItemID,  // Map from backend "ItemID" to frontend "itemId"
-      title: apiItem.Title,
-      description: apiItem.Description,
-      categoryId: apiItem.CategoryID,
+      itemId: apiItem.id,  // Map from backend "id" to frontend "itemId"
+      title: apiItem.title,
+      description: apiItem.description,
+      categoryId: apiItem.categoryId,
       categoryName: apiItem.categoryName,
-      price: apiItem.Price,
-      conditionId: apiItem.ConditionID,
-      statusId: apiItem.StatusID,
-      sellerId: apiItem.SellerID,
-      postedDate: apiItem.PostedDate,
+      price: apiItem.price,
+      conditionId: apiItem.conditionId,
+      statusId: apiItem.statusId,
+      sellerId: apiItem.sellerId,
+      postedDate: apiItem.postedDate,
       images: apiItem.images ? [...apiItem.images] : [] // Handle undefined images
     };
   }
@@ -478,10 +478,10 @@ export const ApiResponseValidators = {
     return (
       typeof obj === 'object' &&
       obj !== null &&
-      typeof (obj as any).ItemID === 'number' &&
-      typeof (obj as any).Title === 'string' &&
-      typeof (obj as any).StatusID === 'number' &&
-      typeof (obj as any).PostedDate === 'string'
+      typeof (obj as any).id === 'number' &&
+      typeof (obj as any).title === 'string' &&
+      typeof (obj as any).statusId === 'number' &&
+      typeof (obj as any).postedDate === 'string'
     );
   },
 
@@ -492,13 +492,13 @@ export const ApiResponseValidators = {
     return (
       typeof obj === 'object' &&
       obj !== null &&
-      typeof (obj as any).ItemID === 'number' &&
-      typeof (obj as any).Title === 'string' &&
-      typeof (obj as any).Description === 'string' &&
-      typeof (obj as any).ConditionID === 'number' &&
-      typeof (obj as any).StatusID === 'number' &&
-      typeof (obj as any).SellerID === 'number' &&
-      typeof (obj as any).PostedDate === 'string' &&
+      typeof (obj as any).id === 'number' &&
+      typeof (obj as any).title === 'string' &&
+      typeof (obj as any).description === 'string' &&
+      typeof (obj as any).conditionId === 'number' &&
+      typeof (obj as any).statusId === 'number' &&
+      typeof (obj as any).sellerId === 'number' &&
+      typeof (obj as any).postedDate === 'string' &&
       (Array.isArray((obj as any).images) || (obj as any).images === undefined)
     );
   },
