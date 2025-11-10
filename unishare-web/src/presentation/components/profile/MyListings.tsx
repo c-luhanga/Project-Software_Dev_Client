@@ -8,7 +8,6 @@
  * - Pure UI component with props interface
  */
 
-import React from 'react';
 import {
   Box,
   Typography,

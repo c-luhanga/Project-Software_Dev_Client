@@ -136,7 +136,7 @@ export function ProfilePageExample() {
       {/* My Listings Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <MyListings
-          items={items}
+          items={items as any}
           loading={isLoading}
           onItemClick={handleItemClick}
         />

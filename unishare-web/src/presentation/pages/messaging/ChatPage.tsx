@@ -18,7 +18,8 @@ import {
   IconButton,
   Paper,
   Alert,
-  Button
+  Button,
+  Chip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -32,6 +33,10 @@ import {
   selectMessagingStatus,
   clearError
 } from '../../../store/messagingSlice';
+import { 
+  selectWebSocketConnected, 
+  selectWebSocketConnecting 
+} from '../../../store/webSocketSlice';
 import { selectAuthUser } from '../../../store/authSlice';
 import { MessageThread } from '../../components/messaging/MessageThread';
 import { MessageInput } from '../../components/messaging/MessageInput';
@@ -122,6 +127,8 @@ export const ChatPage: React.FC = () => {
   );
   const currentUser = useSelector(selectAuthUser);
   const { loading, sending, error } = useSelector(selectMessagingStatus);
+  const wsConnected = useSelector(selectWebSocketConnected);
+  const wsConnecting = useSelector(selectWebSocketConnecting);
 
   /**
    * Fetch conversation data when component mounts or conversationId changes
@@ -130,11 +137,13 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     if (conversationIdNum) {
       setCurrentPage(1); // Reset pagination on conversation change
+      
+      // Fetch initial data only - no polling
       dispatch(fetchConversationThunk({ 
         conversationId: conversationIdNum, 
         page: 1, 
         pageSize 
-      }));
+      }) as any);
     }
   }, [dispatch, conversationIdNum]);
 
@@ -169,7 +178,7 @@ export const ChatPage: React.FC = () => {
       const result = await dispatch(sendMessageThunk({
         conversationId: conversationIdNum,
         content
-      }));
+      }) as any);
 
       // Check if sending failed
       if (sendMessageThunk.rejected.match(result)) {
@@ -178,6 +187,14 @@ export const ChatPage: React.FC = () => {
           conversationId: conversationIdNum,
           messageId: optimisticId
         }));
+      } else if (sendMessageThunk.fulfilled.match(result)) {
+        // Success: immediately refresh to get the real message and any new ones
+        console.log('✅ Message sent successfully, refreshing conversation...');
+        dispatch(fetchConversationThunk({ 
+          conversationId: conversationIdNum, 
+          page: 1, 
+          pageSize 
+        }) as any);
       }
       // Success case is handled automatically by the thunk fulfilled case
     } catch (error) {
@@ -203,7 +220,7 @@ export const ChatPage: React.FC = () => {
       conversationId: conversationIdNum,
       page: nextPage,
       pageSize
-    }));
+    }) as any);
   };
 
   /**
@@ -250,6 +267,21 @@ export const ChatPage: React.FC = () => {
             {thread.total} message{thread.total !== 1 ? 's' : ''}
           </Typography>
         )}
+
+        {/* WebSocket Connection Status */}
+        <Chip
+          label={wsConnected ? 'Live' : wsConnecting ? 'Connecting' : 'Offline'}
+          color={wsConnected ? 'success' : wsConnecting ? 'warning' : 'error'}
+          size="small"
+          variant="outlined"
+          sx={{ 
+            fontSize: '0.75rem',
+            height: '24px',
+            '& .MuiChip-label': {
+              padding: '0 8px'
+            }
+          }}
+        />
       </ChatHeader>
 
       {/* Error Alert */}

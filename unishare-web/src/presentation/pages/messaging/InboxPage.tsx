@@ -1,14 +1,14 @@
 /**
  * Inbox Page Container
- * 
+ *
  * Container component that connects messaging state to presentation following SOLID principles:
  * - Single Responsibility Principle (SRP): Only handles inbox page orchestration
  * - Dependency Inversion Principle (DIP): Uses Redux thunks instead of direct repository imports
- * 
+ *
  * Pure container pattern with no business logic or infrastructure dependencies
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
@@ -16,16 +16,25 @@ import {
   Box,
   Typography,
   Paper,
-  Alert
+  Alert,
+  IconButton,
+  Tooltip,
+  Chip
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { styled } from '@mui/material/styles';
 import type { AppDispatch } from '../../../store/store';
-import { 
+import {
   fetchInboxThunk,
   selectInbox,
   selectMessagingStatus,
   clearError
 } from '../../../store/messagingSlice';
+import { 
+  webSocketActions, 
+  selectWebSocketConnected, 
+  selectWebSocketConnecting 
+} from '../../../store/webSocketSlice';
 import { InboxList } from '../../components/messaging/InboxList';
 
 /**
@@ -71,18 +80,35 @@ const InboxCard = styled(Paper)(({ theme }) => ({
 export const InboxPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   // Select state from Redux store (DIP: no direct service dependencies)
   const inbox = useSelector(selectInbox);
   const { loading, error } = useSelector(selectMessagingStatus);
+  const wsConnected = useSelector(selectWebSocketConnected);
+  const wsConnecting = useSelector(selectWebSocketConnecting);
 
   /**
-   * Fetch inbox data on component mount
+   * Fetch inbox data and connect to WebSocket
    * DIP: Uses thunk instead of direct repository call
    */
-  useEffect(() => {
-    dispatch(fetchInboxThunk({ page: 1, pageSize: 20 }));
+  // Helper to fetch inbox and update lastUpdated on success
+  const doFetch = useCallback(() => {
+    return dispatch(fetchInboxThunk({ page: 1, pageSize: 20 }) as any).then((res: any) => {
+      if (fetchInboxThunk.fulfilled.match(res)) {
+        setLastUpdated(new Date().toISOString());
+      }
+      return res;
+    });
   }, [dispatch]);
+
+  useEffect(() => {
+    // Fetch initial data
+    doFetch();
+    
+    // Connect to WebSocket for real-time updates
+    dispatch(webSocketActions.connect());
+  }, [doFetch, dispatch]);
 
   /**
    * Handle conversation selection
@@ -100,6 +126,14 @@ export const InboxPage: React.FC = () => {
   };
 
   /**
+   * Manual refresh handler (also updates lastUpdated)
+   */
+  const handleManualRefresh = () => {
+    console.log('🔄 Manual refresh requested');
+    doFetch();
+  };
+
+  /**
    * Check if we have conversations to display
    */
   const hasConversations = inbox && inbox.items.length > 0;
@@ -109,15 +143,38 @@ export const InboxPage: React.FC = () => {
   return (
     <PageContainer maxWidth="md">
       <InboxHeader>
-        <Typography variant="h4" component="h1" fontWeight="bold">
-          Messages
-        </Typography>
-        
-        {hasConversations && (
-          <Typography variant="body2" color="text.secondary">
-            {inbox.total} conversation{inbox.total !== 1 ? 's' : ''}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4" component="h1" fontWeight="bold">
+            Messages
           </Typography>
-        )}
+          {hasConversations && (
+            <Typography variant="body2" color="text.secondary">
+              {inbox.total} conversation{inbox.total !== 1 ? 's' : ''}
+            </Typography>
+          )}
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {lastUpdated && (
+            <Typography variant="caption" color="text.secondary">
+              Updated {new Date(lastUpdated).toLocaleTimeString()}
+            </Typography>
+          )}
+          
+          {/* WebSocket connection status */}
+          <Chip 
+            label={wsConnected ? 'Live' : wsConnecting ? 'Connecting...' : 'Offline'} 
+            color={wsConnected ? 'success' : wsConnecting ? 'warning' : 'default'}
+            size="small"
+            variant="outlined"
+          />
+          
+          <Tooltip title="Refresh inbox">
+            <IconButton onClick={handleManualRefresh} aria-label="Refresh inbox">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </InboxHeader>
 
       {/* Error Alert */}

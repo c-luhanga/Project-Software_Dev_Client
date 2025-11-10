@@ -49,7 +49,6 @@ const SellItemPage: React.FC = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning'>('success');
-  const [createdItemId, setCreatedItemId] = useState<number | null>(null);
 
   /**
    * Handle form submission
@@ -75,7 +74,6 @@ const SellItemPage: React.FC = () => {
       if (createItemThunk.fulfilled.match(result)) {
         const newItemId = result.payload;
         console.log('✅ SellItemPage - Item created successfully with ID:', newItemId);
-        setCreatedItemId(newItemId);
         
         // If images were provided, upload them immediately
         if (images && images.length > 0) {

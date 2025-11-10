@@ -6,6 +6,7 @@ import profileReducer from './profileSlice';
 import itemsReducer from './itemsSlice';
 import messagingReducer from './messagingSlice';
 import adminReducer from './adminSlice';
+import { webSocketReducer, webSocketMiddleware } from './webSocketSlice';
 
 /**
  * Extra argument interface for thunk middleware
@@ -26,6 +27,7 @@ export const store = configureStore({
     items: itemsReducer,
     messaging: messagingReducer,
     admin: adminReducer,
+    webSocket: webSocketReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -65,7 +67,8 @@ export const store = configureStore({
           'profile.items.9.postedDate',
         ],
       },
-    }),
+    })
+    .concat(webSocketMiddleware as any), // Add WebSocket middleware
   // Enable Redux DevTools in development
   devTools: import.meta.env.DEV,
 });
