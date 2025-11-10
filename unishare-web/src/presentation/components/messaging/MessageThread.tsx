@@ -47,7 +47,9 @@ const ThreadContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
 }));
 
-const MessageBubble = styled(Paper)<{ isMine: boolean }>(({ theme, isMine }) => ({
+const MessageBubble = styled(Paper, {
+  shouldForwardProp: (prop) => prop !== 'isMine',
+})<{ isMine: boolean }>(({ theme, isMine }) => ({
   maxWidth: '70%',
   padding: theme.spacing(1, 2),
   alignSelf: isMine ? 'flex-end' : 'flex-start',
@@ -63,7 +65,9 @@ const MessageBubble = styled(Paper)<{ isMine: boolean }>(({ theme, isMine }) => 
   wordBreak: 'break-word',
 }));
 
-const MessageContainer = styled(Box)<{ isMine: boolean }>(({ theme, isMine }) => ({
+const MessageContainer = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'isMine',
+})<{ isMine: boolean }>(({ theme, isMine }) => ({
   display: 'flex',
   flexDirection: isMine ? 'row-reverse' : 'row',
   alignItems: 'flex-end',
@@ -82,7 +86,9 @@ const MessageText = styled(Typography)({
   wordBreak: 'break-word',
 });
 
-const MessageTimestamp = styled(Typography)<{ isMine: boolean }>(({ theme, isMine }) => ({
+const MessageTimestamp = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== 'isMine',
+})<{ isMine: boolean }>(({ theme, isMine }) => ({
   fontSize: '0.75rem',
   color: isMine 
     ? theme.palette.primary.contrastText 
