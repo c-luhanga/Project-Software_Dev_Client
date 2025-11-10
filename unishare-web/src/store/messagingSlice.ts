@@ -11,7 +11,7 @@
  * - Optimistic updates with rollback support
  */
 
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from './store';
 import type { ThunkExtraArgument } from './store';
 import type { 
@@ -269,6 +269,51 @@ const messagingSlice = createSlice({
           };
         }
       }
+    },
+
+    /**
+     * Receive real-time message via SignalR
+     */
+    receiveMessage: (state, action: PayloadAction<MessageDto>) => {
+      const message = action.payload;
+      const { conversationId } = message;
+      const thread = state.threads[conversationId];
+      
+      if (thread) {
+        // Check if message already exists (avoid duplicates)
+        const existingMessage = thread.items.find(msg => msg.messageId === message.messageId);
+        if (!existingMessage) {
+          // Add new message to the thread
+          const updatedItems = [...thread.items, message];
+          // Sort by timestamp to maintain order
+          updatedItems.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          
+          state.threads[conversationId] = {
+            ...thread,
+            items: updatedItems,
+            total: thread.total + 1
+          };
+        }
+      }
+      
+      // Update inbox to show latest message
+      if (state.inbox) {
+        const conversationIndex = state.inbox.items.findIndex(conv => conv.conversationId === conversationId);
+        if (conversationIndex !== -1) {
+          const updatedItems = [...state.inbox.items];
+          updatedItems[conversationIndex] = {
+            ...updatedItems[conversationIndex],
+            lastMessage: message.content,
+            lastUpdated: message.timestamp,
+            unreadCount: (updatedItems[conversationIndex].unreadCount || 0) + 1
+          };
+          
+          state.inbox = {
+            ...state.inbox,
+            items: updatedItems
+          };
+        }
+      }
     }
   },
   extraReducers: (builder) => {
@@ -389,7 +434,8 @@ export const {
   resetMessaging, 
   addOptimisticMessage, 
   removeOptimisticMessage, 
-  replaceOptimisticMessage 
+  replaceOptimisticMessage,
+  receiveMessage
 } = messagingSlice.actions;
 
 /**
@@ -435,11 +481,16 @@ export const selectError = (state: RootState): string | undefined =>
 /**
  * Select combined loading/error state for UI convenience
  */
-export const selectMessagingStatus = (state: RootState) => ({
-  loading: state.messaging.loading,
-  sending: state.messaging.sending,
-  error: state.messaging.error
-});
+export const selectMessagingStatus = createSelector(
+  [(state: RootState) => state.messaging.loading,
+   (state: RootState) => state.messaging.sending,
+   (state: RootState) => state.messaging.error],
+  (loading: 'idle' | 'loading' | 'succeeded' | 'failed', sending: boolean, error: string | undefined) => ({
+    loading,
+    sending,
+    error
+  })
+);
 
 /**
  * Select if there are any conversations loaded

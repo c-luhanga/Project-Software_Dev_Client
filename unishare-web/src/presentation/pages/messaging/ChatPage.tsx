@@ -35,7 +35,8 @@ import {
 } from '../../../store/messagingSlice';
 import { 
   selectWebSocketConnected, 
-  selectWebSocketConnecting 
+  selectWebSocketConnecting,
+  webSocketActions
 } from '../../../store/webSocketSlice';
 import { selectAuthUser } from '../../../store/authSlice';
 import { MessageThread } from '../../components/messaging/MessageThread';
@@ -144,6 +145,9 @@ export const ChatPage: React.FC = () => {
         page: 1, 
         pageSize 
       }) as any);
+
+      // Join SignalR conversation group for real-time updates
+      dispatch(webSocketActions.joinConversation(conversationIdNum));
     }
   }, [dispatch, conversationIdNum]);
 
@@ -188,13 +192,9 @@ export const ChatPage: React.FC = () => {
           messageId: optimisticId
         }));
       } else if (sendMessageThunk.fulfilled.match(result)) {
-        // Success: immediately refresh to get the real message and any new ones
-        console.log('✅ Message sent successfully, refreshing conversation...');
-        dispatch(fetchConversationThunk({ 
-          conversationId: conversationIdNum, 
-          page: 1, 
-          pageSize 
-        }) as any);
+        // Success: SignalR will handle broadcasting the message to all participants
+        console.log('✅ Message sent successfully, waiting for SignalR broadcast...');
+        // Remove manual refresh - let SignalR handle real-time updates
       }
       // Success case is handled automatically by the thunk fulfilled case
     } catch (error) {

@@ -9,8 +9,7 @@ import type { Middleware } from '@reduxjs/toolkit';
 import type { RootState } from '../store/store';
 import { SignalRService } from '../infrastructure/websocket/SignalRService';
 import { 
-  fetchInboxThunk,
-  fetchConversationThunk
+  fetchInboxThunk
 } from './messagingSlice';
 
 /**
@@ -148,17 +147,9 @@ export const webSocketMiddleware: Middleware = (store: any) => {
         
         onNewMessage: (message: any) => {
           console.log('📨 New message received via SignalR:', message);
-          // Refresh the inbox to get updated conversation list
-          store.dispatch(fetchInboxThunk({ page: 1, pageSize: 20 }) as any);
           
-          // If we're viewing this conversation, refresh it
-          if (message.conversationId) {
-            store.dispatch(fetchConversationThunk({ 
-              conversationId: message.conversationId, 
-              page: 1, 
-              pageSize: 50 
-            }) as any);
-          }
+          // Add message directly to the store for instant UI update
+          store.dispatch({ type: 'messaging/receiveMessage', payload: message });
         },
         
         onConversationUpdate: (conversation: any) => {
