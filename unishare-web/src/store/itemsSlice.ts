@@ -74,11 +74,26 @@ export const createItemThunk = createAsyncThunk<
   { extra: { container: { itemsService: IItemsService } } }
 >(
   'items/createItem',
-  async (command, { extra }) => {
-    const itemsService = extra.container.itemsService;
-    const result = await itemsService.create(command);
-    
-    return result;
+  async (command, { extra, rejectWithValue }) => {
+    try {
+      console.log('🔍 Redux createItemThunk - Starting item creation:', command);
+      
+      const itemsService = extra.container.itemsService;
+      const result = await itemsService.create(command);
+      
+      console.log('✅ Redux createItemThunk - Item created successfully:', result);
+      
+      if (typeof result !== 'number' || result <= 0) {
+        console.error('❌ Redux createItemThunk - Invalid item ID returned:', result);
+        return rejectWithValue('Invalid item ID returned from server');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Redux createItemThunk - Error creating item:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create item';
+      return rejectWithValue(errorMessage);
+    }
   }
 );
 

@@ -13,14 +13,12 @@ import {
 import type { AppDispatch } from '../../../store/store';
 import {
   createItemThunk, 
-  addItemImagesThunk,
   uploadItemImagesThunk,
   clearError,
   selectIsItemsLoading
 } from '../../../store/itemsSlice';
 import type { CreateItemCommand } from '../../../domain/items/contracts';
 import SellItemForm from '../../components/items/SellItemForm';
-import AddImagesDialog from '../../components/items/AddImagesDialog';
 
 /**
  * Sell Item Page Container Component
@@ -50,93 +48,112 @@ const SellItemPage: React.FC = () => {
   // Local UI state
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-  const [showImageUploadDialog, setShowImageUploadDialog] = useState(false);
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning'>('success');
   const [createdItemId, setCreatedItemId] = useState<number | null>(null);
 
   /**
    * Handle form submission
    * Creates item via thunk and manages subsequent workflow
    */
-  const handleFormSubmit = async (command: CreateItemCommand) => {
+  const handleFormSubmit = async (command: CreateItemCommand, images?: File[]) => {
     try {
+      console.log('🔍 SellItemPage - Starting form submission:', { command, imageCount: images?.length });
+      
+      // Check authentication status before attempting to create item
+      const authState = (window as any).store?.getState?.()?.auth;
+      console.log('🔐 Current auth state:', {
+        hasToken: !!authState?.token,
+        hasUser: !!authState?.user,
+        userEmail: authState?.user?.email,
+        status: authState?.status
+      });
+      
       const result = await dispatch(createItemThunk(command));
+      
+      console.log('🔍 SellItemPage - Create item result:', result);
       
       if (createItemThunk.fulfilled.match(result)) {
         const newItemId = result.payload;
+        console.log('✅ SellItemPage - Item created successfully with ID:', newItemId);
         setCreatedItemId(newItemId);
-        setSnackbarMessage('Item created successfully!');
-        setSnackbarSeverity('success');
-        setShowSnackbar(true);
         
-        // Prompt for optional image upload
-        setShowImageUploadDialog(true);
+        // If images were provided, upload them immediately
+        if (images && images.length > 0) {
+          try {
+            console.log('🔍 SellItemPage - Uploading images for item:', newItemId);
+            const uploadResult = await dispatch(uploadItemImagesThunk({ 
+              itemId: newItemId, 
+              files: images 
+            }));
+            
+            if (uploadItemImagesThunk.fulfilled.match(uploadResult)) {
+              console.log('✅ SellItemPage - Images uploaded successfully');
+              setSnackbarMessage('Item created and images uploaded successfully!');
+              setSnackbarSeverity('success');
+              setShowSnackbar(true);
+              
+              // Navigate directly to the item
+              setTimeout(() => navigate(`/items/${newItemId}`), 1500);
+            } else {
+              console.warn('⚠️ SellItemPage - Image upload failed');
+              setSnackbarMessage('Item created but image upload failed');
+              setSnackbarSeverity('warning');
+              setShowSnackbar(true);
+              setTimeout(() => navigate(`/items/${newItemId}`), 1500);
+            }
+          } catch (error) {
+            console.error('❌ SellItemPage - Image upload error:', error);
+            setSnackbarMessage('Item created but image upload failed');
+            setSnackbarSeverity('warning');
+            setShowSnackbar(true);
+            setTimeout(() => navigate(`/items/${newItemId}`), 1500);
+          }
+        } else {
+          // No images provided, show success and navigate
+          console.log('✅ SellItemPage - No images to upload, navigating to item');
+          setSnackbarMessage('Item created successfully!');
+          setSnackbarSeverity('success');
+          setShowSnackbar(true);
+          setTimeout(() => navigate(`/items/${newItemId}`), 1500);
+        }
       } else if (createItemThunk.rejected.match(result)) {
-        throw new Error(result.error.message || 'Failed to create item');
+        console.error('❌ SellItemPage - Item creation rejected:', result.error);
+        
+        // Extract detailed error information
+        const errorDetails = {
+          message: result.error.message,
+          name: result.error.name,
+          code: (result.error as any).code,
+          stack: result.error.stack
+        };
+        console.error('❌ SellItemPage - Error details:', errorDetails);
+        
+        // Show user-friendly error message
+        let userMessage = 'Failed to create item';
+        if (result.error.message) {
+          if (result.error.message.includes('401') || result.error.message.includes('Unauthorized')) {
+            userMessage = 'Please log in to create items';
+          } else if (result.error.message.includes('403') || result.error.message.includes('Forbidden')) {
+            userMessage = 'You must use a @principia.edu email to create items';
+          } else if (result.error.message.includes('400') || result.error.message.includes('validation')) {
+            userMessage = 'Please check all required fields and try again';
+          } else {
+            userMessage = result.error.message;
+          }
+        }
+        
+        throw new Error(userMessage);
+      } else {
+        console.error('❌ SellItemPage - Unexpected result type:', result);
+        throw new Error('Unexpected response from item creation');
       }
     } catch (error) {
-      setSnackbarMessage(error instanceof Error ? error.message : 'Failed to create item');
+      console.error('❌ SellItemPage - Form submission error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create item';
+      setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setShowSnackbar(true);
     }
-  };
-
-  /**
-   * Handle image upload confirmation from dialog
-   */
-  const handleImageUpload = async (files: File[]) => { // Changed parameter type
-    if (!createdItemId || files.length === 0) {
-      handleNavigateToItem();
-      return;
-    }
-
-    try {
-      // Clear any previous errors
-      dispatch(clearError());
-      
-      console.log('🔍 Starting file upload for new item:', createdItemId, 'files:', files.length);
-
-      const result = await dispatch(uploadItemImagesThunk({ // Use new thunk
-        itemId: createdItemId,
-        files
-      }));
-
-      if (uploadItemImagesThunk.fulfilled.match(result)) {
-        setSnackbarMessage('Images uploaded successfully!');
-        setSnackbarSeverity('success');
-        setShowSnackbar(true);
-      } else if (uploadItemImagesThunk.rejected.match(result)) {
-        setSnackbarMessage('Images upload failed, but item was created');
-        setSnackbarSeverity('error');
-        setShowSnackbar(true);
-      }
-    } catch (error) {
-      setSnackbarMessage('Images upload failed, but item was created');
-      setSnackbarSeverity('error');
-      setShowSnackbar(true);
-    } finally {
-      handleNavigateToItem();
-    }
-  };
-
-  /**
-   * Navigate to the newly created item detail page
-   */
-  const handleNavigateToItem = () => {
-    setShowImageUploadDialog(false);
-    if (createdItemId) {
-      navigate(`/items/${createdItemId}`);
-    } else {
-      navigate('/items');
-    }
-  };
-
-  /**
-   * Skip image upload and navigate directly
-   */
-  const handleSkipImages = () => {
-    setShowImageUploadDialog(false);
-    handleNavigateToItem();
   };
 
   /**
@@ -162,7 +179,7 @@ const SellItemPage: React.FC = () => {
         </Typography>
         
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Fill out the form below to list your item for sale. You'll be able to add photos after creating the listing.
+          Fill out the form below to list your item for sale. Add photos to make your listing more attractive to buyers.
         </Typography>
 
         <Box sx={{ position: 'relative' }}>
@@ -193,14 +210,6 @@ const SellItemPage: React.FC = () => {
           />
         </Box>
       </Paper>
-
-      {/* Image Upload Dialog */}
-      <AddImagesDialog
-        open={showImageUploadDialog}
-        onClose={handleSkipImages}
-        onConfirm={handleImageUpload}
-        maxCount={4}
-      />
 
       {/* Success/Error Snackbar */}
       <Snackbar

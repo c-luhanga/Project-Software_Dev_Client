@@ -61,10 +61,6 @@ interface ApiPagedResponse<T> {
   hasPreviousPage: boolean;
 }
 
-interface ApiCreateItemResponse {
-  itemId: number;
-}
-
 /**
  * Items Repository Implementation (SRP, DIP)
  * 
@@ -177,13 +173,36 @@ export class ItemsRepository implements IItemsRepository {
         ...(command.price && { price: command.price })
       };
 
-      const response = await this.apiClient.post<ApiCreateItemResponse>(
+      console.log('🔍 Creating item with request body:', requestBody);
+      console.log('🔐 Auth token exists:', !!this.apiClient.getToken());
+
+      // Backend returns ItemDto with 'id' property, not 'itemId'
+      const response = await this.apiClient.post<ApiItemDetail>(
         '/items',
         requestBody
       );
 
-      return response.itemId;
+      console.log('✅ Item created successfully:', response);
+      
+      if (!response || typeof response.id !== 'number') {
+        throw new Error(`Invalid response format: expected object with numeric 'id', got: ${JSON.stringify(response)}`);
+      }
+      
+      return response.id;
     } catch (error) {
+      console.error('❌ Failed to create item:', error);
+      
+      // Extract more detailed error information
+      if (error && typeof error === 'object' && 'status' in error) {
+        const apiError = error as any;
+        console.error('❌ API Error details:', {
+          status: apiError.status,
+          statusText: apiError.statusText,
+          url: apiError.url,
+          data: apiError.data
+        });
+      }
+      
       throw new Error(
         `Failed to create item: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
