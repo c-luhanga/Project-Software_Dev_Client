@@ -47,22 +47,23 @@ const ThreadContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
 }));
 
-const MessageBubble = styled(Paper, {
+const MessageBubble = styled(Box, {
   shouldForwardProp: (prop) => prop !== 'isMine',
 })<{ isMine: boolean }>(({ theme, isMine }) => ({
-  maxWidth: '70%',
-  padding: theme.spacing(1, 2),
-  alignSelf: isMine ? 'flex-end' : 'flex-start',
+  maxWidth: '60%',
+  padding: theme.spacing(1.5, 2),
   backgroundColor: isMine 
-    ? theme.palette.primary.main 
-    : theme.palette.background.paper,
+    ? '#0084ff'  // Facebook Messenger blue
+    : '#e4e6ea', // Facebook Messenger gray
   color: isMine 
-    ? theme.palette.primary.contrastText 
-    : theme.palette.text.primary,
-  borderRadius: theme.spacing(2),
-  borderTopLeftRadius: isMine ? theme.spacing(2) : theme.spacing(0.5),
-  borderTopRightRadius: isMine ? theme.spacing(0.5) : theme.spacing(2),
+    ? '#ffffff'
+    : '#050505',
+  borderRadius: '18px',
   wordBreak: 'break-word',
+  fontSize: '15px',
+  lineHeight: 1.33,
+  boxShadow: 'none',
+  border: 'none',
 }));
 
 const MessageContainer = styled(Box, {
@@ -71,8 +72,10 @@ const MessageContainer = styled(Box, {
   display: 'flex',
   flexDirection: isMine ? 'row-reverse' : 'row',
   alignItems: 'flex-end',
-  gap: theme.spacing(1),
-  marginBottom: theme.spacing(0.5),
+  gap: theme.spacing(0.5),
+  marginBottom: theme.spacing(0.25),
+  paddingLeft: isMine ? theme.spacing(6) : 0,
+  paddingRight: isMine ? 0 : theme.spacing(6),
 }));
 
 const MessageContent = styled(Box)({
@@ -89,12 +92,9 @@ const MessageText = styled(Typography)({
 const MessageTimestamp = styled(Typography, {
   shouldForwardProp: (prop) => prop !== 'isMine',
 })<{ isMine: boolean }>(({ theme, isMine }) => ({
-  fontSize: '0.75rem',
-  color: isMine 
-    ? theme.palette.primary.contrastText 
-    : theme.palette.text.secondary,
-  opacity: 0.7,
-  marginTop: theme.spacing(0.5),
+  fontSize: '11px',
+  color: '#8a8d91',
+  margin: theme.spacing(0.25, 1),
   alignSelf: isMine ? 'flex-end' : 'flex-start',
 }));
 
@@ -221,7 +221,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isMine, showAvatar }
       )}
       
       <MessageContent>
-        <MessageBubble isMine={isMine} elevation={1}>
+        <MessageBubble isMine={isMine}>
           <MessageText variant="body2">
             {message.content}
           </MessageText>

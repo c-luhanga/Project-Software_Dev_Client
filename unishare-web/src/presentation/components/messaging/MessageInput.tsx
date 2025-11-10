@@ -8,16 +8,17 @@
  * Pure presentational component with no Redux or business logic dependencies
  */
 
-import React, { useState, useRef, type KeyboardEvent } from 'react';
+import React, { useState, useRef, type KeyboardEvent, type ChangeEvent } from 'react';
 import {
   Box,
   TextField,
   IconButton,
-  Paper,
-  Typography
+  Typography,
+  Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
+import ImageIcon from '@mui/icons-material/Image';
 
 /**
  * Component props following ISP - only what's needed for input handling
@@ -25,6 +26,8 @@ import SendIcon from '@mui/icons-material/Send';
 interface MessageInputProps {
   /** Callback when user sends a message */
   onSend: (content: string) => void;
+  /** Callback when user sends an image */
+  onSendImage?: (file: File) => void;
   /** Whether message is currently being sent */
   sending: boolean;
   /** Maximum character length for message (optional) */
@@ -32,41 +35,68 @@ interface MessageInputProps {
 }
 
 /**
- * Styled components for input layout
+ * Styled components for Facebook Messenger-style input layout
  */
-const InputContainer = styled(Paper)(({ theme }) => ({
+const InputContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'flex-end',
-  padding: theme.spacing(1),
+  padding: theme.spacing(1.5, 2),
   gap: theme.spacing(1),
-  backgroundColor: theme.palette.background.paper,
-  borderRadius: theme.spacing(1),
+  backgroundColor: '#ffffff',
+  borderTop: '1px solid #e4e6ea',
 }));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   flex: 1,
   '& .MuiOutlinedInput-root': {
-    borderRadius: theme.spacing(2),
-    backgroundColor: theme.palette.background.default,
+    borderRadius: '20px',
+    backgroundColor: '#f0f2f5',
+    border: 'none',
+    '&:hover': {
+      '& .MuiOutlinedInput-notchedOutline': {
+        border: 'none',
+      },
+    },
+    '&.Mui-focused': {
+      '& .MuiOutlinedInput-notchedOutline': {
+        border: '1px solid #1877f2',
+      },
+    },
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    border: 'none',
   },
   '& .MuiOutlinedInput-input': {
-    padding: theme.spacing(1, 1.5),
+    padding: theme.spacing(1.5, 2),
+    fontSize: '15px',
   },
   '& .MuiInputLabel-outlined': {
-    transform: 'translate(12px, 9px) scale(1)',
+    transform: 'translate(16px, 12px) scale(1)',
   },
   '& .MuiInputLabel-shrink': {
-    transform: 'translate(12px, -6px) scale(0.75)',
+    transform: 'translate(16px, -6px) scale(0.75)',
+  },
+}));
+
+const ActionButton = styled(IconButton)(() => ({
+  color: '#1877f2',
+  width: 36,
+  height: 36,
+  '&:hover': {
+    backgroundColor: 'rgba(24, 119, 242, 0.1)',
+  },
+  '&:disabled': {
+    color: '#bcc0c4',
   },
 }));
 
 const SendButton = styled(IconButton)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
-  width: 40,
-  height: 40,
+  backgroundColor: '#1877f2',
+  color: '#ffffff',
+  width: 36,
+  height: 36,
   '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: '#166fe5',
   },
   '&:disabled': {
     backgroundColor: theme.palette.action.disabled,
@@ -98,11 +128,13 @@ const CharacterCount = styled(Typography)(({ theme }) => ({
  */
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
+  onSendImage,
   sending,
   maxLength = 4000
 }) => {
   const [message, setMessage] = useState('');
   const textFieldRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Handle message sending
@@ -116,8 +148,32 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       // Focus back to input after sending
       setTimeout(() => {
         textFieldRef.current?.focus();
-      }, 0);
+      }, 100);
     }
+  };
+
+  /**
+   * Handle image file selection
+   */
+  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && onSendImage && !sending) {
+      // Validate file type
+      if (file.type.startsWith('image/')) {
+        onSendImage(file);
+      } else {
+        alert('Please select an image file');
+      }
+    }
+    // Reset input value to allow selecting the same file again
+    event.target.value = '';
+  };
+
+  /**
+   * Trigger file input click
+   */
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
   };
 
   /**
@@ -156,12 +212,25 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <Box>
-      <InputContainer elevation={1}>
+      <InputContainer>
+        {/* Image Upload Button */}
+        {onSendImage && (
+          <Tooltip title="Send photo">
+            <ActionButton
+              onClick={handleImageClick}
+              disabled={sending}
+              aria-label="Upload image"
+            >
+              <ImageIcon fontSize="small" />
+            </ActionButton>
+          </Tooltip>
+        )}
+
         <StyledTextField
           ref={textFieldRef}
           multiline
           maxRows={4}
-          placeholder={sending ? 'Sending...' : 'Type your message...'}
+          placeholder={sending ? 'Sending...' : 'Type a message...'}
           value={message}
           onChange={handleMessageChange}
           onKeyPress={handleKeyPress}
@@ -182,6 +251,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         >
           <SendIcon fontSize="small" />
         </SendButton>
+        
+        {/* Hidden file input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          accept="image/*"
+          style={{ display: 'none' }}
+        />
       </InputContainer>
       
       {showCharCount && (

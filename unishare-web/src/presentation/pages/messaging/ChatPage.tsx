@@ -12,14 +12,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
-  Container,
   Box,
   Typography,
   IconButton,
-  Paper,
   Alert,
   Button,
-  Chip
+  Chip,
+  Avatar
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -50,42 +49,59 @@ interface ChatPageParams extends Record<string, string | undefined> {
 }
 
 /**
- * Styled components for chat page layout
+ * Styled components for Facebook Messenger-style chat layout
  */
-const PageContainer = styled(Container)(() => ({
+const PageContainer = styled(Box)(() => ({
   height: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  padding: 0,
-  maxWidth: 'none !important',
+  backgroundColor: '#f0f2f5',
+  overflow: 'hidden',
 }));
 
 const ChatHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  padding: theme.spacing(2),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.background.paper,
+  padding: theme.spacing(1.5, 2),
+  backgroundColor: '#ffffff',
+  borderBottom: '1px solid #e4e6ea',
+  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   gap: theme.spacing(2),
+  minHeight: 60,
 }));
 
-const ChatContent = styled(Paper)(() => ({
+const ChatContent = styled(Box)(() => ({
   flex: 1,
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
-  borderRadius: 0,
+  backgroundColor: '#f0f2f5',
 }));
 
-const ThreadContainer = styled(Box)({
+const ThreadContainer = styled(Box)(() => ({
   flex: 1,
-  overflow: 'hidden',
-});
+  overflowY: 'auto',
+  padding: '16px',
+  backgroundColor: '#f0f2f5',
+  '&::-webkit-scrollbar': {
+    width: '8px',
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: '#c4c9d0',
+    borderRadius: '4px',
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    backgroundColor: '#8a94a6',
+  },
+}));
 
-const InputContainer = styled(Box)(({ theme }) => ({
+const MessageInputContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2),
-  borderTop: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.background.paper,
+  backgroundColor: '#ffffff',
+  borderTop: '1px solid #e4e6ea',
 }));
 
 const LoadMoreContainer = styled(Box)(({ theme }) => ({
@@ -207,6 +223,27 @@ export const ChatPage: React.FC = () => {
   }, [dispatch, conversationIdNum, currentUser]);
 
   /**
+   * Handle image upload and sending
+   * For now, this will just convert the image to a text message
+   * In a full implementation, this would upload to a file storage service
+   */
+  const handleSendImage = useCallback(async (file: File) => {
+    if (!conversationIdNum || !currentUser) return;
+
+    // For demo purposes, send a message indicating an image was uploaded
+    // In production, you would upload to cloud storage and send the URL
+    const imageMessage = `📸 Image uploaded: ${file.name} (${Math.round(file.size / 1024)}KB)`;
+    
+    handleSendMessage(imageMessage);
+    
+    // TODO: Implement actual image upload to storage service
+    // 1. Upload file to cloud storage (AWS S3, Cloudinary, etc.)
+    // 2. Get the image URL
+    // 3. Send a message with image type and URL
+    // 4. Update MessageThread to display images
+  }, [conversationIdNum, currentUser, handleSendMessage]);
+
+  /**
    * Handle loading older messages (pagination)
    * DIP: Uses thunk for data fetching
    */
@@ -250,23 +287,40 @@ export const ChatPage: React.FC = () => {
     <PageContainer>
       {/* Header */}
       <ChatHeader>
-        <IconButton 
+        <IconButton
           onClick={handleBackToInbox}
           edge="start"
           aria-label="Back to inbox"
+          sx={{ color: '#1877f2' }}
         >
           <ArrowBackIcon />
         </IconButton>
         
-        <Typography variant="h6" component="h1" flex={1}>
-          Conversation
-        </Typography>
+        <Avatar 
+          sx={{ 
+            width: 40, 
+            height: 40, 
+            bgcolor: '#1877f2',
+            fontSize: '1rem'
+          }}
+        >
+          {thread?.items[0]?.senderId !== currentUser?.userId ? 
+            thread?.items[0]?.content?.charAt(0)?.toUpperCase() || 'U' : 
+            'U'}
+        </Avatar>
 
-        {hasMessages && (
-          <Typography variant="body2" color="text.secondary">
-            {thread.total} message{thread.total !== 1 ? 's' : ''}
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h6" component="h1" sx={{ fontWeight: 600, mb: 0 }}>
+            {thread?.items[0]?.senderId !== currentUser?.userId ? 
+              'Other User' : 
+              'Conversation'}
           </Typography>
-        )}
+          {wsConnected && (
+            <Typography variant="caption" color="success.main" sx={{ fontSize: '0.75rem' }}>
+              ● Active now
+            </Typography>
+          )}
+        </Box>
 
         {/* WebSocket Connection Status */}
         <Chip
@@ -295,7 +349,7 @@ export const ChatPage: React.FC = () => {
         </Alert>
       )}
 
-      <ChatContent elevation={0}>
+      <ChatContent>
         {/* Load More Button (for pagination) */}
         {hasMoreMessages && !isLoading && (
           <LoadMoreContainer>
@@ -337,13 +391,14 @@ export const ChatPage: React.FC = () => {
         </ThreadContainer>
 
         {/* Message Input */}
-        <InputContainer>
+        <MessageInputContainer>
           <MessageInput
             onSend={handleSendMessage}
+            onSendImage={handleSendImage}
             sending={sending}
             maxLength={4000}
           />
-        </InputContainer>
+        </MessageInputContainer>
       </ChatContent>
     </PageContainer>
   );
