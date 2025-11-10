@@ -63,6 +63,18 @@ export const SearchBarContainer: React.FC = () => {
     if (query.trim()) newSearchParams.set('q', query.trim());
     if (categoryId && categoryId !== '0') newSearchParams.set('categoryId', categoryId);
     
+    // Preserve current page unless query/category changed (which would reset to page 1)
+    const currentPage = searchParams.get('page');
+    const currentQuery = searchParams.get('q') || '';
+    const currentCategoryId = searchParams.get('categoryId') || '0';
+    
+    // Only preserve page if query and category haven't changed
+    if (currentPage && currentPage !== '1' && 
+        query.trim() === currentQuery && 
+        categoryId === currentCategoryId) {
+      newSearchParams.set('page', currentPage);
+    }
+    
     // Only update URL if it's different to avoid unnecessary navigation
     const newUrl = newSearchParams.toString();
     if (newUrl !== searchParams.toString()) {
@@ -88,14 +100,18 @@ export const SearchBarContainer: React.FC = () => {
     // 1. Update local state immediately (no re-render of parent)
     setSearchQuery(newQuery);
     
-    // 2. Perform search immediately (responsive results)
+    // 2. Get current page from URL, reset to page 1 only when query changes
+    const currentPage = parseInt(searchParams.get('page') || '1');
+    const resetToFirstPage = newQuery !== searchParams.get('q'); // Only reset if query actually changed
+    
+    // 3. Perform search immediately (responsive results)
     dispatch(searchItemsThunk({
       query: newQuery || undefined,
       categoryId: selectedCategory && selectedCategory !== '0' ? parseInt(selectedCategory) : undefined,
-      page: 1,
+      page: resetToFirstPage ? 1 : currentPage,
       pageSize: PAGE_SIZE
     }));
-  }, [dispatch]); // Only depend on dispatch, use current values from closure
+  }, [dispatch, selectedCategory, searchParams]); // Include searchParams to get current page
 
   /**
    * Handle category filter change - immediate search and URL update
@@ -104,20 +120,28 @@ export const SearchBarContainer: React.FC = () => {
     // 1. Update local state immediately
     setSelectedCategory(newCategory);
     
-    // 2. Perform search immediately using current searchQuery
+    // 2. Get current page from URL, reset to page 1 only when category changes
+    const currentPage = parseInt(searchParams.get('page') || '1');
+    const resetToFirstPage = newCategory !== searchParams.get('categoryId'); // Only reset if category actually changed
+    
+    // 3. Perform search immediately using current searchQuery
     dispatch(searchItemsThunk({
       query: searchQuery || undefined,
       categoryId: newCategory && newCategory !== '0' ? parseInt(newCategory) : undefined,
-      page: 1,
+      page: resetToFirstPage ? 1 : currentPage,
       pageSize: PAGE_SIZE
     }));
     
-    // 3. Update URL immediately for category (less frequent than typing)
+    // 4. Update URL immediately for category (less frequent than typing)
     const newSearchParams = new URLSearchParams();
     if (searchQuery.trim()) newSearchParams.set('q', searchQuery.trim());
     if (newCategory && newCategory !== '0') newSearchParams.set('categoryId', newCategory);
+    // Preserve page if category didn't actually change
+    if (!resetToFirstPage && currentPage > 1) {
+      newSearchParams.set('page', currentPage.toString());
+    }
     setSearchParams(newSearchParams, { replace: true });
-  }, [dispatch, searchQuery, setSearchParams]); // Keep minimal dependencies
+  }, [dispatch, searchQuery, setSearchParams, searchParams]); // Include searchParams to get current page
 
   // Don't render search bar if not on a search-enabled page
   if (!isSearchPage) {
