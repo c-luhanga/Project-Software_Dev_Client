@@ -335,9 +335,9 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
         ref={scrollRef}
         onScroll={handleScroll}
       >
-        {messagesWithAvatars.map((message) => (
+        {messagesWithAvatars.map((message, index) => (
           <MessageItem
-            key={message.messageId}
+            key={`${message.messageId}-${(message as any).isOptimistic ? 'opt' : 'real'}-${index}`}
             message={message}
             isMine={message.isMine}
             showAvatar={message.showAvatar}

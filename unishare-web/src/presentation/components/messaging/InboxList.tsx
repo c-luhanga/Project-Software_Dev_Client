@@ -187,11 +187,11 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ item, onClick }) =>
           }
           secondary={
             item.lastMessage ? (
-              <LastMessageText variant="body2">
+              <LastMessageText as="span" variant="body2">
                 {item.lastMessage}
               </LastMessageText>
             ) : (
-              <LastMessageText variant="body2" sx={{ fontStyle: 'italic' }}>
+              <LastMessageText as="span" variant="body2" sx={{ fontStyle: 'italic' }}>
                 No messages yet
               </LastMessageText>
             )

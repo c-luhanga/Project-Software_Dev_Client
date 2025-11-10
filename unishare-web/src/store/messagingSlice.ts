@@ -283,15 +283,25 @@ const messagingSlice = createSlice({
         // Check if message already exists (avoid duplicates)
         const existingMessage = thread.items.find(msg => msg.messageId === message.messageId);
         if (!existingMessage) {
+          // Remove any optimistic message with same content and similar timestamp
+          const filteredItems = thread.items.filter(msg => {
+            if (!(msg as any).isOptimistic) return true;
+            // Remove optimistic if content matches and timestamp is within 10 seconds
+            const optimisticTime = new Date(msg.timestamp).getTime();
+            const realTime = new Date(message.timestamp).getTime();
+            const timeDiff = Math.abs(realTime - optimisticTime);
+            return !(msg.content === message.content && timeDiff < 10000);
+          });
+
           // Add new message to the thread
-          const updatedItems = [...thread.items, message];
+          const updatedItems = [...filteredItems, message];
           // Sort by timestamp to maintain order
           updatedItems.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
           
           state.threads[conversationId] = {
             ...thread,
             items: updatedItems,
-            total: thread.total + 1
+            total: Math.max(thread.total, updatedItems.length)
           };
         }
       }
