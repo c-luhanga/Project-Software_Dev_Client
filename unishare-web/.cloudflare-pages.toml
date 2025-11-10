@@ -1,0 +1,44 @@
+# Cloudflare Pages Build Configuration
+# This file documents the build settings for Cloudflare Pages deployment
+# Configure these settings in your Cloudflare Pages dashboard
+
+[build]
+  # Build command - Cloudflare will run this
+  command = "npm ci && npm run build"
+  
+  # Output directory - where the built files are located
+  publish = "dist"
+  
+  # Node.js version
+  [build.environment]
+    NODE_VERSION = "18"
+    NPM_VERSION = "9"
+
+# Environment variables to set in Cloudflare Pages dashboard
+[env]
+  # PRODUCTION ENVIRONMENT VARIABLES
+  # Set these in Cloudflare Pages > Settings > Environment Variables
+  
+  # Backend API URL (replace with your MonsterASP.NET domain)
+  VITE_API_BASE_URL = "https://your-project-name.monsterasp.net/api"
+  VITE_API_BASE_URL_SIGNALR = "https://your-project-name.monsterasp.net"
+  
+  # Upload limits
+  VITE_MAX_FILE_SIZE_MB = "5"
+  VITE_MAX_IMAGES_PER_ITEM = "4"
+  
+  # Environment
+  VITE_ENVIRONMENT = "production"
+  
+  # Disable debug in production
+  VITE_DEBUG_API = "false"
+
+# Build optimization
+[context.production]
+  command = "npm ci && npm run build"
+
+[context.deploy-preview]
+  command = "npm ci && npm run build"
+
+[context.branch-deploy]
+  command = "npm ci && npm run build"

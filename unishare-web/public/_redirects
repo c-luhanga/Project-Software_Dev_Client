@@ -1,0 +1,18 @@
+# Cloudflare Pages redirects for React Router (SPA)
+# This ensures all routes are handled by the React app
+
+# Handle all routes by serving index.html (SPA fallback)
+/*    /index.html   200
+
+# Optional: Redirect old URLs if needed
+# /old-path    /new-path    301
+
+# Optional: API proxy (if you want to proxy API calls through Cloudflare)
+# /api/*    https://your-project.monsterasp.net/api/:splat    200
+
+# Security headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
