@@ -1,3 +1,5 @@
+import type { AdminDashboardData } from './types';
+
 /**
  * Admin Domain Contracts
  * 
@@ -14,6 +16,12 @@
  */
 export interface IAdminRepository {
   /**
+   * Get admin dashboard overview data
+   * @returns Promise that resolves to dashboard statistics
+   */
+  getDashboard(): Promise<AdminDashboardData>;
+
+  /**
    * Delete an item by ID
    * @param itemId ID of the item to delete
    * @returns Promise that resolves when deletion is complete
@@ -26,6 +34,13 @@ export interface IAdminRepository {
    * @returns Promise that resolves when ban is complete
    */
   banUser(userId: number): Promise<void>;
+
+  /**
+   * Unban a user by ID
+   * @param userId ID of the user to unban
+   * @returns Promise that resolves when unban is complete
+   */
+  unbanUser(userId: number): Promise<void>;
 }
 
 /**
@@ -35,6 +50,12 @@ export interface IAdminRepository {
  * Includes validation, business rules, and error handling.
  */
 export interface IAdminService {
+  /**
+   * Get admin dashboard overview with business validation
+   * @returns Promise that resolves to dashboard statistics
+   */
+  getDashboard(): Promise<AdminDashboardData>;
+
   /**
    * Delete an item with business validation
    * @param itemId ID of the item to delete
@@ -48,6 +69,13 @@ export interface IAdminService {
    * @returns Promise that resolves when ban is complete
    */
   banUser(userId: number): Promise<void>;
+
+  /**
+   * Unban a user with business validation
+   * @param userId ID of the user to unban
+   * @returns Promise that resolves when unban is complete
+   */
+  unbanUser(userId: number): Promise<void>;
 }
 
 /**

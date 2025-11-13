@@ -12,6 +12,7 @@ import { ProfilePage } from '../pages/profile';
 import { InboxPage } from '../pages/messaging/InboxPage';
 import { ChatPage } from '../pages/messaging/ChatPage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
+import UserManagementPage from '../pages/admin/UserManagementPage';
 
 /**
  * Main application router following Single Responsibility Principle
@@ -132,16 +133,8 @@ export const AppRouter: React.FC = () => {
           <Route index element={<AdminDashboardPage />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
           
-          {/* User Management - Future admin feature */}
-          <Route 
-            path="users" 
-            element={
-              <div style={{ padding: '2rem' }}>
-                <h2>User Management</h2>
-                <p>User management interface will be implemented here.</p>
-              </div>
-            } 
-          />
+          {/* User Management - Admin user management interface */}
+          <Route path="users" element={<UserManagementPage />} />
         </Route>
 
         {/* Legacy auth routes - redirect to simplified paths */}

@@ -1,5 +1,6 @@
 import type { IApiClient } from '../http/IApiClient';
 import type { IAdminRepository } from '../../domain/admin/contracts';
+import type { AdminDashboardData } from '../../domain/admin/types';
 
 /**
  * Admin Repository - Infrastructure Layer
@@ -43,6 +44,35 @@ export class AdminRepository implements IAdminRepository {
    */
   constructor(apiClient: IApiClient) {
     this.apiClient = apiClient;
+  }
+
+  /**
+   * Get admin dashboard overview data
+   * 
+   * Retrieves comprehensive platform statistics and metrics for the admin dashboard.
+   * This includes user counts, item statistics, and platform health information.
+   * 
+   * @returns Promise that resolves to dashboard data
+   * @throws {Error} When request fails, user lacks permissions, or server error
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   const dashboardData = await adminRepository.getDashboard();
+   *   console.log('Platform stats:', dashboardData);
+   * } catch (error) {
+   *   console.error('Dashboard fetch failed:', error.message);
+   * }
+   * ```
+   */
+  async getDashboard(): Promise<AdminDashboardData> {
+    try {
+      const response = await this.apiClient.get('/admin/dashboard');
+      // API client might return { data: AdminDashboardData } or AdminDashboardData directly
+      return (response as any).data || response;
+    } catch (error: any) {
+      this.handleApiError(error, 'fetch dashboard data');
+    }
   }
 
   /**
@@ -116,6 +146,43 @@ export class AdminRepository implements IAdminRepository {
     } catch (error: any) {
       // Re-throw with enhanced error information
       this.handleApiError(error, 'ban user');
+    }
+  }
+
+  /**
+   * Unban a user (Admin operation)
+   * 
+   * Unbans a previously banned user, allowing them to login and
+   * perform actions again. This is an admin-only moderation operation.
+   * 
+   * @param userId ID of the user to unban
+   * @returns Promise that resolves when unban is complete
+   * @throws {Error} When unban fails, user lacks permissions, or user not found
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   await adminRepository.unbanUser(456);
+   *   console.log('User unbanned successfully');
+   * } catch (error) {
+   *   console.error('Unban failed:', error.message);
+   * }
+   * ```
+   */
+  async unbanUser(userId: number): Promise<void> {
+    try {
+      // Validate input
+      if (!userId || userId <= 0) {
+        throw new Error('Invalid user ID provided');
+      }
+
+      // Make PUT request to admin unban endpoint
+      await this.apiClient.put(`/admin/users/${userId}/unban`);
+      
+      // Operation completed successfully (void return)
+    } catch (error: any) {
+      // Re-throw with enhanced error information
+      this.handleApiError(error, 'unban user');
     }
   }
 

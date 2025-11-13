@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { container } from '../core/container';
+import type { AdminDashboardData } from '../domain/admin/types';
 
 /**
  * Admin Redux Slice - Handles administrative operations state
@@ -17,19 +18,64 @@ import { container } from '../core/container';
 
 // State interface
 interface AdminState {
-  isLoading: boolean;
-  error: string | null;
-  lastDeletedItem: { itemId: number } | null;
-  lastBannedUser: { userId: number } | null;
+  // Dashboard data
+  dashboard: {
+    data: AdminDashboardData | null;
+    isLoading: boolean;
+    error: string | null;
+    lastFetched: string | null;
+  };
+  // Operations state
+  operations: {
+    isLoading: boolean;
+    error: string | null;
+    lastDeletedItem: { itemId: number } | null;
+    lastBannedUser: { userId: number } | null;
+    lastUnbannedUser: { userId: number } | null;
+  };
 }
 
 // Initial state
 const initialState: AdminState = {
-  isLoading: false,
-  error: null,
-  lastDeletedItem: null,
-  lastBannedUser: null,
+  dashboard: {
+    data: null,
+    isLoading: false,
+    error: null,
+    lastFetched: null,
+  },
+  operations: {
+    isLoading: false,
+    error: null,
+    lastDeletedItem: null,
+    lastBannedUser: null,
+    lastUnbannedUser: null,
+  },
 };
+
+/**
+ * Admin Dashboard Fetch Thunk
+ * 
+ * Fetches dashboard data through AdminRepository.
+ * Handles loading states and error propagation.
+ * 
+ * @returns Promise resolving to dashboard data
+ */
+export const fetchAdminDashboardThunk = createAsyncThunk(
+  'admin/fetchDashboard',
+  async (_, { rejectWithValue }) => {
+    try {
+      const adminRepository = container.adminRepository;
+      const dashboardData = await adminRepository.getDashboard();
+      return {
+        data: dashboardData,
+        lastFetched: new Date().toISOString(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
+      return rejectWithValue(message);
+    }
+  }
+);
 
 /**
  * Admin Delete Item Thunk
@@ -78,65 +124,151 @@ export const adminBanUserThunk = createAsyncThunk(
 );
 
 /**
+ * Admin Unban User Thunk
+ * 
+ * Dispatches user unban through AdminRepository.
+ * Handles loading states and error propagation.
+ * 
+ * @param userId - ID of the user to unban
+ * @returns Promise resolving to unban confirmation
+ */
+export const adminUnbanUserThunk = createAsyncThunk(
+  'admin/unbanUser',
+  async (userId: number, { rejectWithValue }) => {
+    try {
+      const adminRepository = container.adminRepository;
+      await adminRepository.unbanUser(userId);
+      return { userId };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to unban user';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
  * Admin slice definition
  */
 const adminSlice = createSlice({
   name: 'admin',
   initialState,
   reducers: {
-    // Clear error state
-    clearAdminError: (state) => {
-      state.error = null;
+    // Clear dashboard error state
+    clearDashboardError: (state) => {
+      state.dashboard.error = null;
+    },
+    // Clear operations error state
+    clearOperationsError: (state) => {
+      state.operations.error = null;
     },
     // Clear last operation results
-    clearAdminResults: (state) => {
-      state.lastDeletedItem = null;
-      state.lastBannedUser = null;
+    clearOperationResults: (state) => {
+      state.operations.lastDeletedItem = null;
+      state.operations.lastBannedUser = null;
+      state.operations.lastUnbannedUser = null;
+    },
+    // Reset dashboard data (force refresh)
+    resetDashboard: (state) => {
+      state.dashboard.data = null;
+      state.dashboard.lastFetched = null;
+      state.dashboard.error = null;
     },
   },
   extraReducers: (builder) => {
+    // Fetch Admin Dashboard
+    builder
+      .addCase(fetchAdminDashboardThunk.pending, (state) => {
+        state.dashboard.isLoading = true;
+        state.dashboard.error = null;
+      })
+      .addCase(fetchAdminDashboardThunk.fulfilled, (state, action) => {
+        state.dashboard.isLoading = false;
+        state.dashboard.data = action.payload.data;
+        state.dashboard.lastFetched = action.payload.lastFetched;
+        state.dashboard.error = null;
+      })
+      .addCase(fetchAdminDashboardThunk.rejected, (state, action) => {
+        state.dashboard.isLoading = false;
+        state.dashboard.error = action.payload as string || 'Failed to fetch dashboard data';
+      });
+
     // Admin Delete Item
     builder
       .addCase(adminDeleteItemThunk.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
+        state.operations.isLoading = true;
+        state.operations.error = null;
       })
       .addCase(adminDeleteItemThunk.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.lastDeletedItem = action.payload;
-        state.error = null;
+        state.operations.isLoading = false;
+        state.operations.lastDeletedItem = action.payload;
+        state.operations.error = null;
       })
       .addCase(adminDeleteItemThunk.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string || 'Failed to delete item';
+        state.operations.isLoading = false;
+        state.operations.error = action.payload as string || 'Failed to delete item';
       });
 
     // Admin Ban User
     builder
       .addCase(adminBanUserThunk.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
+        state.operations.isLoading = true;
+        state.operations.error = null;
       })
       .addCase(adminBanUserThunk.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.lastBannedUser = action.payload;
-        state.error = null;
+        state.operations.isLoading = false;
+        state.operations.lastBannedUser = action.payload;
+        state.operations.error = null;
       })
       .addCase(adminBanUserThunk.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string || 'Failed to ban user';
+        state.operations.isLoading = false;
+        state.operations.error = action.payload as string || 'Failed to ban user';
+      });
+
+    // Admin Unban User
+    builder
+      .addCase(adminUnbanUserThunk.pending, (state) => {
+        state.operations.isLoading = true;
+        state.operations.error = null;
+      })
+      .addCase(adminUnbanUserThunk.fulfilled, (state, action) => {
+        state.operations.isLoading = false;
+        state.operations.lastUnbannedUser = action.payload;
+        state.operations.error = null;
+      })
+      .addCase(adminUnbanUserThunk.rejected, (state, action) => {
+        state.operations.isLoading = false;
+        state.operations.error = action.payload as string || 'Failed to unban user';
       });
   },
 });
 
 // Export actions
-export const { clearAdminError, clearAdminResults } = adminSlice.actions;
+export const { 
+  clearDashboardError, 
+  clearOperationsError, 
+  clearOperationResults, 
+  resetDashboard 
+} = adminSlice.actions;
 
-// Export selectors
-export const selectAdminIsLoading = (state: { admin: AdminState }) => state.admin.isLoading;
-export const selectAdminError = (state: { admin: AdminState }) => state.admin.error;
-export const selectLastDeletedItem = (state: { admin: AdminState }) => state.admin.lastDeletedItem;
-export const selectLastBannedUser = (state: { admin: AdminState }) => state.admin.lastBannedUser;
+// Dashboard selectors
+export const selectDashboardData = (state: { admin: AdminState }) => state.admin.dashboard.data;
+export const selectDashboardLoading = (state: { admin: AdminState }) => state.admin.dashboard.isLoading;
+export const selectDashboardError = (state: { admin: AdminState }) => state.admin.dashboard.error;
+export const selectDashboardLastFetched = (state: { admin: AdminState }) => state.admin.dashboard.lastFetched;
+
+// Operations selectors
+export const selectOperationsLoading = (state: { admin: AdminState }) => state.admin.operations.isLoading;
+export const selectOperationsError = (state: { admin: AdminState }) => state.admin.operations.error;
+export const selectLastDeletedItem = (state: { admin: AdminState }) => state.admin.operations.lastDeletedItem;
+export const selectLastBannedUser = (state: { admin: AdminState }) => state.admin.operations.lastBannedUser;
+export const selectLastUnbannedUser = (state: { admin: AdminState }) => state.admin.operations.lastUnbannedUser;
+
+// Convenience selectors
+export const selectAdminIsLoading = (state: { admin: AdminState }) => 
+  state.admin.dashboard.isLoading || state.admin.operations.isLoading;
+
+export const selectAdminError = (state: { admin: AdminState }) => 
+  state.admin.dashboard.error || state.admin.operations.error;
 
 // Export reducer
 export default adminSlice.reducer;
