@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
-import { selectIsAuthenticated } from '../../store/authSlice';
+import { selectIsAuthenticated, selectIsLoading } from '../../store/authSlice';
 
 /**
  * Props interface for ProtectedRoute component
@@ -26,13 +26,26 @@ interface ProtectedRouteProps {
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  redirectTo = '/auth/login' 
+  redirectTo = '/login' 
 }) => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const isLoading = useAppSelector(selectIsLoading);
   const location = useLocation();
+
+  // Debug logging
+  console.log('ProtectedRoute - Path:', location.pathname);
+  console.log('ProtectedRoute - isLoading:', isLoading);
+  console.log('ProtectedRoute - isAuthenticated:', isAuthenticated);
+
+  // Wait for auth to finish loading before making any decisions
+  if (isLoading) {
+    console.log('ProtectedRoute - Still loading auth state, waiting...');
+    return <div>Loading...</div>;
+  }
 
   // If not authenticated, redirect to login with current location
   if (!isAuthenticated) {
+    console.log('ProtectedRoute - Redirecting to:', redirectTo);
     return (
       <Navigate 
         to={redirectTo} 
@@ -42,6 +55,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  console.log('ProtectedRoute - Allowing access');
   // If authenticated, render protected content
   return <>{children}</>;
 };

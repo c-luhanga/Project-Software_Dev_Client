@@ -107,9 +107,16 @@ interface ConfirmationDialog {
 const UserManagementPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   
-  // Redux state
-  const isLoading = useSelector(selectOperationsLoading);
-  const error = useSelector(selectOperationsError);
+  // Debug logging
+  console.log('UserManagementPage component rendering');
+  
+  // Redux state - temporarily comment out the selectors that use container
+  // const isLoading = useSelector(selectOperationsLoading);
+  // const error = useSelector(selectOperationsError);
+  
+  // Hardcode for debugging
+  const isLoading = false;
+  const error = null;
 
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
@@ -148,16 +155,19 @@ const UserManagementPage: React.FC = () => {
     });
   };
 
-  // Confirm action
+  // Confirm action - temporarily disable actual API calls
   const handleConfirmAction = async () => {
     if (!confirmDialog.user || !confirmDialog.action) return;
 
     try {
-      if (confirmDialog.action === 'ban') {
-        await dispatch(adminBanUserThunk(confirmDialog.user.id)).unwrap();
-      } else {
-        await dispatch(adminUnbanUserThunk(confirmDialog.user.id)).unwrap();
-      }
+      console.log('Would perform action:', confirmDialog.action, 'on user:', confirmDialog.user.id);
+      
+      // Temporarily comment out actual API calls for debugging
+      // if (confirmDialog.action === 'ban') {
+      //   await dispatch(adminBanUserThunk(confirmDialog.user.id)).unwrap();
+      // } else {
+      //   await dispatch(adminUnbanUserThunk(confirmDialog.user.id)).unwrap();
+      // }
       
       // In a real app, you would refresh the users list here
       // dispatch(fetchUsersThunk());

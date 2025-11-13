@@ -52,7 +52,7 @@ import { canEditItem, canMarkSold, canModerate } from '../../../domain/auth/perm
 import {
   adminDeleteItemThunk,
   adminBanUserThunk,
-  clearAdminError,
+  clearOperationsError,
   selectAdminIsLoading,
   selectAdminError
 } from '../../../store/adminSlice';
@@ -409,7 +409,7 @@ const ItemDetailPage: React.FC = () => {
   const handleCloseSnackbar = () => {
     setShowSnackbar(false);
     dispatch(clearError());
-    dispatch(clearAdminError());
+    dispatch(clearOperationsError());
   };
 
   /**

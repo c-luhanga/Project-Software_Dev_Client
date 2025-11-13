@@ -123,11 +123,7 @@ export const AppRouter: React.FC = () => {
         {/* Admin Routes - Protected by Authentication AND Admin Role */}
         <Route
           path="admin/*"
-          element={
-            <ProtectedRoute>
-              <AdminRoute />
-            </ProtectedRoute>
-          }
+          element={<AdminRoute />}
         >
           {/* Admin Dashboard - Main admin landing page */}
           <Route index element={<AdminDashboardPage />} />

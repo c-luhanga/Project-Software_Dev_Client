@@ -3,6 +3,7 @@ import { Box, Typography, Button, Paper, useMediaQuery, useTheme } from '@mui/ma
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { logoutThunk, selectAuthUser } from '../../store/authSlice';
 import { useNavigate } from 'react-router-dom';
+import AuthDebugComponent from '../components/debug/AuthDebugComponent';
 
 /**
  * Placeholder home page component
@@ -339,6 +340,9 @@ export const HomePage: React.FC = () => {
           </Box>
         </Box>
       </Box>
+      
+      {/* Debug component - remove in production */}
+      <AuthDebugComponent />
     </Box>
   );
 };

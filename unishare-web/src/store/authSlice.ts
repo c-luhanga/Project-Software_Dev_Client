@@ -376,8 +376,9 @@ export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   Boolean(state.auth.token && state.auth.user);
 export const selectIsLoading = (state: { auth: AuthState }) => 
   state.auth.status === 'loading';
-export const selectIsAdmin = (state: { auth: AuthState }) => 
-  Boolean(state.auth.user?.isAdmin);
+export const selectIsAdmin = (state: { auth: AuthState }) => {
+  return Boolean(state.auth.user?.isAdmin);
+};
 export const selectUserId = (state: { auth: AuthState }) => 
   state.auth.user?.userId;
 
