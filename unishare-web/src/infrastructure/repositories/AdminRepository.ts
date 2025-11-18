@@ -1,4 +1,5 @@
 import type { IApiClient } from '../http/IApiClient';
+import type { AdminUsersList, UserSearchOptions, AdminDashboardData } from '../../domain/admin/types';
 
 /**
  * Admin Repository - Handles administrative API operations
@@ -59,6 +60,74 @@ export class AdminRepository {
 
   constructor(apiClient: IApiClient) {
     this.apiClient = apiClient;
+  }
+
+  /**
+   * Get paginated list of users for admin management
+   * 
+   * @param options - Search and pagination options
+   * @returns Promise resolving to paginated user list
+   * @throws {Error} When request fails or user lacks permissions
+   */
+  async getUsers(options: UserSearchOptions = {}): Promise<AdminUsersList> {
+    try {
+      const params = new URLSearchParams();
+      
+      if (options.searchTerm) params.append('search', options.searchTerm);
+      if (options.includeAdmins !== undefined) params.append('includeAdmins', String(options.includeAdmins));
+      if (options.includeBanned !== undefined) params.append('includeBanned', String(options.includeBanned));
+      if (options.sortBy) params.append('sortBy', options.sortBy);
+      if (options.sortOrder) params.append('sortOrder', options.sortOrder);
+      if (options.page) params.append('page', String(options.page));
+      if (options.pageSize) params.append('pageSize', String(options.pageSize));
+      
+      const queryString = params.toString();
+      const url = queryString ? `/admin/users?${queryString}` : '/admin/users';
+      
+      const response = await this.apiClient.get<AdminUsersList>(url);
+      
+      return response;
+    } catch (error: any) {
+      // Handle specific HTTP error codes
+      if (error.status === 403) {
+        throw new Error('Admin privileges required to view user list');
+      }
+      
+      if (error.status === 401) {
+        throw new Error('Authentication required');
+      }
+      
+      // Extract error message from response if available
+      const errorMessage = error.message || 'Failed to fetch users';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Get admin dashboard overview data
+   * 
+   * @returns Promise resolving to dashboard statistics
+   * @throws {Error} When request fails or user lacks permissions
+   */
+  async getDashboard(): Promise<AdminDashboardData> {
+    try {
+      const response = await this.apiClient.get<AdminDashboardData>('/admin/dashboard');
+      
+      return response;
+    } catch (error: any) {
+      // Handle specific HTTP error codes
+      if (error.status === 403) {
+        throw new Error('Admin privileges required to view dashboard');
+      }
+      
+      if (error.status === 401) {
+        throw new Error('Authentication required');
+      }
+      
+      // Extract error message from response if available
+      const errorMessage = error.message || 'Failed to fetch dashboard data';
+      throw new Error(errorMessage);
+    }
   }
 
   /**

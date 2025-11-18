@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { container } from '../core/container';
-import type { AdminDashboardData } from '../domain/admin/types';
+import type { AdminDashboardData, AdminUsersList, UserSearchOptions } from '../domain/admin/types';
 
 /**
  * Admin Redux Slice - Handles administrative operations state
@@ -25,6 +25,14 @@ interface AdminState {
     error: string | null;
     lastFetched: string | null;
   };
+  // User management data
+  users: {
+    data: AdminUsersList | null;
+    isLoading: boolean;
+    error: string | null;
+    currentSearchOptions: UserSearchOptions | null;
+    lastFetched: string | null;
+  };
   // Operations state
   operations: {
     isLoading: boolean;
@@ -41,6 +49,13 @@ const initialState: AdminState = {
     data: null,
     isLoading: false,
     error: null,
+    lastFetched: null,
+  },
+  users: {
+    data: null,
+    isLoading: false,
+    error: null,
+    currentSearchOptions: null,
     lastFetched: null,
   },
   operations: {
@@ -72,6 +87,33 @@ export const fetchAdminDashboardThunk = createAsyncThunk(
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch dashboard data';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Admin Users Fetch Thunk
+ * 
+ * Fetches paginated user list through AdminRepository.
+ * Handles loading states and error propagation.
+ * 
+ * @param options - Search and pagination options
+ * @returns Promise resolving to paginated user list
+ */
+export const fetchAdminUsersThunk = createAsyncThunk(
+  'admin/fetchUsers',
+  async (options: UserSearchOptions = {}, { rejectWithValue }) => {
+    try {
+      const adminRepository = container.adminRepository;
+      const usersData = await adminRepository.getUsers(options);
+      return {
+        data: usersData,
+        searchOptions: options,
+        lastFetched: new Date().toISOString(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch users';
       return rejectWithValue(message);
     }
   }
@@ -157,6 +199,10 @@ const adminSlice = createSlice({
     clearDashboardError: (state) => {
       state.dashboard.error = null;
     },
+    // Clear users error state
+    clearUsersError: (state) => {
+      state.users.error = null;
+    },
     // Clear operations error state
     clearOperationsError: (state) => {
       state.operations.error = null;
@@ -172,6 +218,13 @@ const adminSlice = createSlice({
       state.dashboard.data = null;
       state.dashboard.lastFetched = null;
       state.dashboard.error = null;
+    },
+    // Reset users data (force refresh)
+    resetUsers: (state) => {
+      state.users.data = null;
+      state.users.lastFetched = null;
+      state.users.error = null;
+      state.users.currentSearchOptions = null;
     },
   },
   extraReducers: (builder) => {
@@ -190,6 +243,24 @@ const adminSlice = createSlice({
       .addCase(fetchAdminDashboardThunk.rejected, (state, action) => {
         state.dashboard.isLoading = false;
         state.dashboard.error = action.payload as string || 'Failed to fetch dashboard data';
+      });
+
+    // Fetch Admin Users
+    builder
+      .addCase(fetchAdminUsersThunk.pending, (state) => {
+        state.users.isLoading = true;
+        state.users.error = null;
+      })
+      .addCase(fetchAdminUsersThunk.fulfilled, (state, action) => {
+        state.users.isLoading = false;
+        state.users.data = action.payload.data;
+        state.users.currentSearchOptions = action.payload.searchOptions;
+        state.users.lastFetched = action.payload.lastFetched;
+        state.users.error = null;
+      })
+      .addCase(fetchAdminUsersThunk.rejected, (state, action) => {
+        state.users.isLoading = false;
+        state.users.error = action.payload as string || 'Failed to fetch users';
       });
 
     // Admin Delete Item
@@ -244,10 +315,12 @@ const adminSlice = createSlice({
 
 // Export actions
 export const { 
-  clearDashboardError, 
+  clearDashboardError,
+  clearUsersError,
   clearOperationsError, 
   clearOperationResults, 
-  resetDashboard 
+  resetDashboard,
+  resetUsers
 } = adminSlice.actions;
 
 // Dashboard selectors
@@ -255,6 +328,13 @@ export const selectDashboardData = (state: { admin: AdminState }) => state.admin
 export const selectDashboardLoading = (state: { admin: AdminState }) => state.admin.dashboard.isLoading;
 export const selectDashboardError = (state: { admin: AdminState }) => state.admin.dashboard.error;
 export const selectDashboardLastFetched = (state: { admin: AdminState }) => state.admin.dashboard.lastFetched;
+
+// Users selectors
+export const selectUsersData = (state: { admin: AdminState }) => state.admin.users.data;
+export const selectUsersLoading = (state: { admin: AdminState }) => state.admin.users.isLoading;
+export const selectUsersError = (state: { admin: AdminState }) => state.admin.users.error;
+export const selectUsersLastFetched = (state: { admin: AdminState }) => state.admin.users.lastFetched;
+export const selectUsersSearchOptions = (state: { admin: AdminState }) => state.admin.users.currentSearchOptions;
 
 // Operations selectors
 export const selectOperationsLoading = (state: { admin: AdminState }) => state.admin.operations.isLoading;

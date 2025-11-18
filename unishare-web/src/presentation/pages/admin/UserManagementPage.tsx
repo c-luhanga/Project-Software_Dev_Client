@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   Container, 
@@ -33,11 +33,17 @@ import {
 import { 
   adminBanUserThunk,
   adminUnbanUserThunk,
+  fetchAdminUsersThunk,
+  selectUsersData,
+  selectUsersLoading,
+  selectUsersError,
   selectOperationsLoading,
   selectOperationsError,
+  clearUsersError,
   clearOperationsError,
 } from '../../../store/adminSlice';
 import type { AppDispatch } from '../../../store/store';
+import type { AdminUser, UserSearchOptions } from '../../../domain/admin/types';
 
 /**
  * UserManagement Component - Admin user management interface
@@ -54,91 +60,65 @@ import type { AppDispatch } from '../../../store/store';
  * - Responsive table design
  */
 
-// Mock user data for demonstration
-const mockUsers = [
-  {
-    id: 1,
-    email: 'john.doe@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    isAdmin: false,
-    isBanned: false,
-    registrationDate: '2024-01-15T10:30:00Z',
-    lastLoginDate: '2024-11-10T14:22:00Z',
-  },
-  {
-    id: 2,
-    email: 'jane.smith@example.com',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    isAdmin: false,
-    isBanned: true,
-    registrationDate: '2024-02-20T09:15:00Z',
-    lastLoginDate: '2024-10-28T16:45:00Z',
-  },
-  {
-    id: 3,
-    email: 'admin.user@principia.edu',
-    firstName: 'Admin',
-    lastName: 'User',
-    isAdmin: true,
-    isBanned: false,
-    registrationDate: '2024-01-01T00:00:00Z',
-    lastLoginDate: '2024-11-12T08:00:00Z',
-  },
-  {
-    id: 4,
-    email: 'bob.wilson@example.com',
-    firstName: 'Bob',
-    lastName: 'Wilson',
-    isAdmin: false,
-    isBanned: false,
-    registrationDate: '2024-03-10T12:00:00Z',
-    lastLoginDate: '2024-11-11T19:30:00Z',
-  },
-];
-
 interface ConfirmationDialog {
   open: boolean;
   action: 'ban' | 'unban' | null;
-  user: typeof mockUsers[0] | null;
+  user: AdminUser | null;
 }
 
 const UserManagementPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   
-  // Debug logging
-  console.log('UserManagementPage component rendering');
-  
-  // Redux state - temporarily comment out the selectors that use container
-  // const isLoading = useSelector(selectOperationsLoading);
-  // const error = useSelector(selectOperationsError);
-  
-  // Hardcode for debugging
-  const isLoading = false;
-  const error = null;
+  // Redux state
+  const usersData = useSelector(selectUsersData);
+  const isLoadingUsers = useSelector(selectUsersLoading);
+  const usersError = useSelector(selectUsersError);
+  const isLoadingOperations = useSelector(selectOperationsLoading);
+  const operationsError = useSelector(selectOperationsError);
 
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
-  const [users] = useState(mockUsers); // In real app, this would come from Redux
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [confirmDialog, setConfirmDialog] = useState<ConfirmationDialog>({
     open: false,
     action: null,
     user: null,
   });
 
-  // Filter users based on search term
-  const filteredUsers = users.filter(user => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      user.email.toLowerCase().includes(searchLower) ||
-      user.firstName.toLowerCase().includes(searchLower) ||
-      user.lastName.toLowerCase().includes(searchLower)
-    );
-  });
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Load users on component mount and when search changes
+  const loadUsers = useCallback(() => {
+    const searchOptions: UserSearchOptions = {
+      searchTerm: debouncedSearchTerm || undefined,
+      includeAdmins: true,
+      includeBanned: true,
+      page: 1,
+      pageSize: 50,
+    };
+    dispatch(fetchAdminUsersThunk(searchOptions));
+  }, [dispatch, debouncedSearchTerm]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  // Get users list from data
+  const users = usersData?.users || [];
+  
+  // Display total count with search context
+  const displayCount = users.length;
+  const totalCount = usersData?.totalCount || 0;
 
   // Handle ban user
-  const handleBanUser = (user: typeof mockUsers[0]) => {
+  const handleBanUser = (user: AdminUser) => {
     setConfirmDialog({
       open: true,
       action: 'ban',
@@ -147,7 +127,7 @@ const UserManagementPage: React.FC = () => {
   };
 
   // Handle unban user
-  const handleUnbanUser = (user: typeof mockUsers[0]) => {
+  const handleUnbanUser = (user: AdminUser) => {
     setConfirmDialog({
       open: true,
       action: 'unban',
@@ -155,22 +135,19 @@ const UserManagementPage: React.FC = () => {
     });
   };
 
-  // Confirm action - temporarily disable actual API calls
+  // Confirm action
   const handleConfirmAction = async () => {
     if (!confirmDialog.user || !confirmDialog.action) return;
 
     try {
-      console.log('Would perform action:', confirmDialog.action, 'on user:', confirmDialog.user.id);
+      if (confirmDialog.action === 'ban') {
+        await dispatch(adminBanUserThunk(confirmDialog.user.id)).unwrap();
+      } else {
+        await dispatch(adminUnbanUserThunk(confirmDialog.user.id)).unwrap();
+      }
       
-      // Temporarily comment out actual API calls for debugging
-      // if (confirmDialog.action === 'ban') {
-      //   await dispatch(adminBanUserThunk(confirmDialog.user.id)).unwrap();
-      // } else {
-      //   await dispatch(adminUnbanUserThunk(confirmDialog.user.id)).unwrap();
-      // }
-      
-      // In a real app, you would refresh the users list here
-      // dispatch(fetchUsersThunk());
+      // Refresh the users list after successful operation
+      loadUsers();
       
       setConfirmDialog({ open: false, action: null, user: null });
     } catch (error) {
@@ -186,8 +163,19 @@ const UserManagementPage: React.FC = () => {
 
   // Clear error
   const handleClearError = () => {
-    dispatch(clearOperationsError());
+    if (usersError) {
+      dispatch(clearUsersError());
+    }
+    if (operationsError) {
+      dispatch(clearOperationsError());
+    }
   };
+
+  // Determine current error to display
+  const currentError = usersError || operationsError;
+  
+  // Determine current loading state
+  const isLoading = isLoadingUsers || isLoadingOperations;
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -212,13 +200,13 @@ const UserManagementPage: React.FC = () => {
       </Typography>
 
       {/* Error Alert */}
-      {error && (
+      {currentError && (
         <Alert 
           severity="error" 
           sx={{ mb: 3 }}
           onClose={handleClearError}
         >
-          {error}
+          {currentError}
         </Alert>
       )}
 
@@ -241,7 +229,7 @@ const UserManagementPage: React.FC = () => {
             }}
           />
           <Typography variant="body2" color="text.secondary">
-            {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} found
+            {displayCount} of {totalCount} user{totalCount !== 1 ? 's' : ''} {searchTerm && 'found'}
           </Typography>
         </Box>
       </Paper>
@@ -261,7 +249,27 @@ const UserManagementPage: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {isLoadingUsers ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  <Box sx={{ py: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
+                    <CircularProgress size={24} />
+                    <Typography variant="body2" color="text.secondary">
+                      Loading users...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+                    {searchTerm ? 'No users found matching your search criteria.' : 'No users found.'}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -336,9 +344,9 @@ const UserManagementPage: React.FC = () => {
                   </Box>
                 </TableCell>
               </TableRow>
-            ))}
+            )))}
             
-            {filteredUsers.length === 0 && (
+            {!isLoadingUsers && users.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} align="center">
                   <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>

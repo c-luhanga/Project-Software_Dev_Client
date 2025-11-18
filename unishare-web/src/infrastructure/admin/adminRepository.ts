@@ -1,6 +1,6 @@
 import type { IApiClient } from '../http/IApiClient';
 import type { IAdminRepository } from '../../domain/admin/contracts';
-import type { AdminDashboardData } from '../../domain/admin/types';
+import type { AdminDashboardData, AdminUsersList, UserSearchOptions } from '../../domain/admin/types';
 
 /**
  * Admin Repository - Infrastructure Layer
@@ -72,6 +72,54 @@ export class AdminRepository implements IAdminRepository {
       return (response as any).data || response;
     } catch (error: any) {
       this.handleApiError(error, 'fetch dashboard data');
+    }
+  }
+
+  /**
+   * Get paginated list of users for admin management
+   * 
+   * Retrieves a paginated list of users with search and filtering capabilities.
+   * This includes user details, status, and administrative information.
+   * 
+   * @param options Search and pagination options
+   * @returns Promise that resolves to paginated user list
+   * @throws {Error} When request fails, user lacks permissions, or server error
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   const usersData = await adminRepository.getUsers({
+   *     searchTerm: 'john',
+   *     page: 1,
+   *     pageSize: 20
+   *   });
+   *   console.log('Users:', usersData.users);
+   * } catch (error) {
+   *   console.error('Users fetch failed:', error.message);
+   * }
+   * ```
+   */
+  async getUsers(options: UserSearchOptions = {}): Promise<AdminUsersList> {
+    try {
+      const params = new URLSearchParams();
+      
+      if (options.searchTerm) params.append('search', options.searchTerm);
+      if (options.includeAdmins !== undefined) params.append('includeAdmins', String(options.includeAdmins));
+      if (options.includeBanned !== undefined) params.append('includeBanned', String(options.includeBanned));
+      if (options.sortBy) params.append('sortBy', options.sortBy);
+      if (options.sortOrder) params.append('sortOrder', options.sortOrder);
+      if (options.page) params.append('page', String(options.page));
+      if (options.pageSize) params.append('pageSize', String(options.pageSize));
+      
+      const queryString = params.toString();
+      const url = queryString ? `/admin/users?${queryString}` : '/admin/users';
+      
+      const response = await this.apiClient.get(url);
+      
+      // API client might return { data: AdminUsersList } or AdminUsersList directly
+      return (response as any).data || response;
+    } catch (error: any) {
+      this.handleApiError(error, 'fetch users');
     }
   }
 

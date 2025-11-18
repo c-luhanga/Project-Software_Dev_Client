@@ -1,4 +1,5 @@
 import type { IAdminRepository, IAdminService } from './contracts';
+import type { AdminDashboardData, AdminUsersList, UserSearchOptions } from './types';
 
 /**
  * Domain Admin Service - Business Logic Layer
@@ -117,6 +118,81 @@ export class AdminService implements IAdminService {
   }
 
   /**
+   * Get admin dashboard overview with business validation
+   * 
+   * Retrieves dashboard data through repository while ensuring
+   * proper error handling and domain-level validation.
+   * 
+   * @returns Promise that resolves to dashboard statistics
+   * @throws {AdminInfrastructureError} When repository operation fails
+   * @throws {AdminAuthorizationError} When user lacks permissions
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   const dashboard = await adminService.getDashboard();
+   *   console.log('Platform stats:', dashboard);
+   * } catch (error) {
+   *   if (error instanceof AdminAuthorizationError) {
+   *     console.error('Permission denied:', error.message);
+   *   }
+   * }
+   * ```
+   */
+  async getDashboard(): Promise<AdminDashboardData> {
+    try {
+      // Delegate to repository for data operation
+      return await this.adminRepository.getDashboard();
+    } catch (error) {
+      // Transform infrastructure errors to domain errors
+      this.handleRepositoryError(error, 'fetch dashboard data');
+    }
+  }
+
+  /**
+   * Get paginated list of users for admin management with business validation
+   * 
+   * Retrieves user list through repository while ensuring proper validation
+   * and error handling at the domain level.
+   * 
+   * @param options Search and pagination options
+   * @returns Promise that resolves to paginated user list
+   * @throws {AdminValidationError} When search options are invalid
+   * @throws {AdminInfrastructureError} When repository operation fails
+   * @throws {AdminAuthorizationError} When user lacks permissions
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   const users = await adminService.getUsers({
+   *     searchTerm: 'john',
+   *     page: 1,
+   *     pageSize: 20
+   *   });
+   *   console.log('Users found:', users.users.length);
+   * } catch (error) {
+   *   if (error instanceof AdminValidationError) {
+   *     console.error('Invalid search options:', error.message);
+   *   }
+   * }
+   * ```
+   */
+  async getUsers(options?: UserSearchOptions): Promise<AdminUsersList> {
+    // Domain validation for search options
+    if (options) {
+      this.validateUserSearchOptions(options);
+    }
+
+    try {
+      // Delegate to repository for data operation
+      return await this.adminRepository.getUsers(options);
+    } catch (error) {
+      // Transform infrastructure errors to domain errors
+      this.handleRepositoryError(error, 'fetch users');
+    }
+  }
+
+  /**
    * Delete an item with business validation
    * 
    * Performs domain-level validation before delegating to repository.
@@ -206,6 +282,55 @@ export class AdminService implements IAdminService {
     } catch (error) {
       // Transform infrastructure errors to domain errors
       this.handleRepositoryError(error, 'ban user');
+    }
+  }
+
+  /**
+   * Unban a user with business validation
+   * 
+   * Performs domain-level validation before delegating to repository.
+   * Ensures business rules are enforced consistently.
+   * 
+   * Business Rules:
+   * - User ID must be a positive integer
+   * - User must exist in the system
+   * - User must be currently banned to be unbanned
+   * - Admin must have unban permissions (handled by repository/auth)
+   * 
+   * @param userId ID of the user to unban
+   * @returns Promise that resolves when unban is complete
+   * @throws {AdminValidationError} When userId is invalid
+   * @throws {AdminInfrastructureError} When repository operation fails
+   * @throws {AdminAuthorizationError} When user lacks permissions
+   * @throws {AdminBusinessRuleError} When business rules are violated
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   await adminService.unbanUser(456);
+   *   console.log('User unbanned successfully');
+   * } catch (error) {
+   *   if (error instanceof AdminValidationError) {
+   *     console.error('Invalid user ID:', error.message);
+   *   } else if (error instanceof AdminBusinessRuleError) {
+   *     console.error('Business rule violation:', error.message);
+   *   }
+   * }
+   * ```
+   */
+  async unbanUser(userId: number): Promise<void> {
+    // Domain validation
+    this.validateUserId(userId);
+
+    // Business rule validation (extensible)
+    this.validateUnbanBusinessRules(userId);
+
+    try {
+      // Delegate to repository for data operation
+      await this.adminRepository.unbanUser(userId);
+    } catch (error) {
+      // Transform infrastructure errors to domain errors
+      this.handleRepositoryError(error, 'unban user');
     }
   }
 
@@ -314,6 +439,77 @@ export class AdminService implements IAdminService {
     // - Validate ban reason requirements
     // - Check admin hierarchy rules
     // - Verify cooling-off periods
+  }
+
+  /**
+   * Validate business rules for user unbanning
+   * 
+   * This method can be extended with additional business rules
+   * without modifying existing functionality (OCP).
+   * 
+   * @param userId User ID to validate
+   * @throws {AdminBusinessRuleError} When business rules are violated
+   */
+  private validateUnbanBusinessRules(userId: number): void {
+    // Example business rule: Cannot unban user ID 1 (system admin) - though this case shouldn't occur
+    if (userId === 1) {
+      throw new AdminBusinessRuleError(
+        'System administrator account cannot be unbanned',
+        { userId, reason: 'System protection rule' }
+      );
+    }
+
+    // Additional business rules can be added here:
+    // - Check if user is currently banned
+    // - Validate unban reason requirements  
+    // - Check admin hierarchy rules
+    // - Verify appeal process completion
+  }
+
+  /**
+   * Validate user search options according to domain rules
+   * 
+   * @param options Search options to validate
+   * @throws {AdminValidationError} When validation fails
+   */
+  private validateUserSearchOptions(options: UserSearchOptions): void {
+    if (options.page !== undefined) {
+      if (!Number.isInteger(options.page) || options.page < 1) {
+        throw new AdminValidationError(
+          'Page number must be a positive integer',
+          'page',
+          { provided: options.page, minimum: 1 }
+        );
+      }
+    }
+
+    if (options.pageSize !== undefined) {
+      if (!Number.isInteger(options.pageSize) || options.pageSize < 1 || options.pageSize > 100) {
+        throw new AdminValidationError(
+          'Page size must be between 1 and 100',
+          'pageSize',
+          { provided: options.pageSize, minimum: 1, maximum: 100 }
+        );
+      }
+    }
+
+    if (options.searchTerm !== undefined) {
+      if (typeof options.searchTerm !== 'string') {
+        throw new AdminValidationError(
+          'Search term must be a string',
+          'searchTerm',
+          { provided: options.searchTerm, type: typeof options.searchTerm }
+        );
+      }
+      
+      if (options.searchTerm.length > 100) {
+        throw new AdminValidationError(
+          'Search term cannot exceed 100 characters',
+          'searchTerm',
+          { provided: options.searchTerm.length, maximum: 100 }
+        );
+      }
+    }
   }
 
   /**

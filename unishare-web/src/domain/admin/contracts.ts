@@ -1,4 +1,4 @@
-import type { AdminDashboardData } from './types';
+import type { AdminDashboardData, AdminUsersList, UserSearchOptions } from './types';
 
 /**
  * Admin Domain Contracts
@@ -20,6 +20,13 @@ export interface IAdminRepository {
    * @returns Promise that resolves to dashboard statistics
    */
   getDashboard(): Promise<AdminDashboardData>;
+
+  /**
+   * Get paginated list of users for admin management
+   * @param options Search and pagination options
+   * @returns Promise that resolves to paginated user list
+   */
+  getUsers(options?: UserSearchOptions): Promise<AdminUsersList>;
 
   /**
    * Delete an item by ID
@@ -55,6 +62,13 @@ export interface IAdminService {
    * @returns Promise that resolves to dashboard statistics
    */
   getDashboard(): Promise<AdminDashboardData>;
+
+  /**
+   * Get paginated list of users for admin management with business validation
+   * @param options Search and pagination options
+   * @returns Promise that resolves to paginated user list
+   */
+  getUsers(options?: UserSearchOptions): Promise<AdminUsersList>;
 
   /**
    * Delete an item with business validation

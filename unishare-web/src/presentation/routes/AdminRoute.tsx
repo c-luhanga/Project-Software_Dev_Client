@@ -38,35 +38,23 @@ const AdminRoute: React.FC = () => {
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const isLoading = useSelector(selectIsLoading);
   const authStatus = useSelector(selectAuthStatus);
-  
-  // Debug logging
-  console.log('AdminRoute - authStatus:', authStatus);
-  console.log('AdminRoute - isLoading:', isLoading);
-  console.log('AdminRoute - isAuthenticated:', isAuthenticated);
-  console.log('AdminRoute - isAdmin:', isAdmin);
 
   // Wait for auth to finish loading before making any decisions
   // Also wait if we're in the initial state where loading is false but no auth decision has been made yet
   if (isLoading || authStatus === 'idle') {
-    // Additional check: if we're not loading but also not authenticated and no admin status,
-    // we might be in the initial render state - wait a moment
-    console.log('AdminRoute - Waiting for auth state to stabilize...');
     return <div>Loading...</div>;
   }
 
   // Check authentication first
   if (!isAuthenticated) {
-    console.log('AdminRoute - Redirecting to home, user not authenticated');
     return <Navigate to="/" replace />;
   }
 
   // Then check admin status
   if (!isAdmin) {
-    console.log('AdminRoute - Redirecting to home, user is not admin');
     return <Navigate to="/" replace />;
   }
 
-  console.log('AdminRoute - Allowing access, user is admin');
   // Render nested admin routes for authorized admins
   return <Outlet />;
 };
