@@ -46,6 +46,7 @@ export interface ItemDetail {
   readonly conditionId: number;
   readonly statusId: number;
   readonly sellerId: number;
+  readonly sellerHouse?: string;
   readonly postedDate: string;
   readonly images: readonly string[];
 }

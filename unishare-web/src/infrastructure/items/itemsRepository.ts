@@ -48,6 +48,7 @@ interface ApiItemDetail {
   conditionId: number;
   statusId: number;
   sellerId: number;
+  sellerHouse?: string;
   postedDate: string;
   images?: string[];  // Images might not be included in the DTO
 }
@@ -476,6 +477,7 @@ export class ItemsRepository implements IItemsRepository {
       conditionId: apiItem.conditionId,
       statusId: apiItem.statusId,
       sellerId: apiItem.sellerId,
+      sellerHouse: apiItem.sellerHouse,
       postedDate: apiItem.postedDate,
       images: apiItem.images ? [...apiItem.images] : [] // Handle undefined images
     };

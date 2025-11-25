@@ -764,6 +764,17 @@ const ItemDetailPage: React.FC = () => {
                     {currentItem.categoryName || 'Not specified'}
                   </Typography>
                 </Box>
+                
+                {currentItem.sellerHouse && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Location:
+                    </Typography>
+                    <Typography variant="body2">
+                      {currentItem.sellerHouse}
+                    </Typography>
+                  </Box>
+                )}
               </Stack>
             </Box>
 
