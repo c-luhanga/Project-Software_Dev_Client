@@ -103,11 +103,9 @@ export class AdminRepository implements IAdminRepository {
     try {
       const params = new URLSearchParams();
       
-      if (options.searchTerm) params.append('search', options.searchTerm);
+      if (options.searchTerm) params.append('searchTerm', options.searchTerm);
       if (options.includeAdmins !== undefined) params.append('includeAdmins', String(options.includeAdmins));
       if (options.includeBanned !== undefined) params.append('includeBanned', String(options.includeBanned));
-      if (options.sortBy) params.append('sortBy', options.sortBy);
-      if (options.sortOrder) params.append('sortOrder', options.sortOrder);
       if (options.page) params.append('page', String(options.page));
       if (options.pageSize) params.append('pageSize', String(options.pageSize));
       
@@ -116,8 +114,19 @@ export class AdminRepository implements IAdminRepository {
       
       const response = await this.apiClient.get(url);
       
-      // API client might return { data: AdminUsersList } or AdminUsersList directly
-      return (response as any).data || response;
+      // Handle response - API client might return { data: response } or response directly
+      const rawData = (response as any).data || response;
+      
+      // Transform backend AdminUsersListDto to frontend AdminUsersList format
+      const transformedData: AdminUsersList = {
+        users: rawData.users || rawData.Users || [],
+        totalCount: rawData.totalUsers || rawData.TotalUsers || 0,
+        page: rawData.currentPage || rawData.CurrentPage || options.page || 1,
+        pageSize: rawData.pageSize || rawData.PageSize || options.pageSize || 50,
+        totalPages: rawData.totalPages || rawData.TotalPages || 0
+      };
+      
+      return transformedData;
     } catch (error: any) {
       this.handleApiError(error, 'fetch users');
     }
@@ -187,8 +196,8 @@ export class AdminRepository implements IAdminRepository {
         throw new Error('Invalid user ID provided');
       }
 
-      // Make POST request to admin ban endpoint
-      await this.apiClient.post(`/admin/users/${userId}/ban`);
+      // Make PUT request to admin ban endpoint
+      await this.apiClient.put(`/admin/users/${userId}/ban`);
       
       // Operation completed successfully (void return)
     } catch (error: any) {

@@ -169,7 +169,7 @@ const SellItemForm: React.FC<SellItemFormProps> = ({ onSubmit, disabled = false 
     });
 
     // Validate parsed values
-    if (isNaN(conditionId) || conditionId < 1 || conditionId > 4) {
+    if (isNaN(conditionId) || conditionId < 1 || conditionId > 5) {
       console.error('❌ Invalid condition ID:', conditionId);
       return;
     }

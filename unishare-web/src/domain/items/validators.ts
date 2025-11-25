@@ -159,8 +159,8 @@ export function validateCreateItem(input: unknown): ValidationResult<CreateItemC
   // Validate conditionId (required)
   if (!ValidationHelpers.isPositiveInteger(data.conditionId)) {
     errors.conditionId = 'Condition ID is required and must be a positive integer';
-  } else if (data.conditionId < 1 || data.conditionId > 4) {
-    errors.conditionId = 'Condition ID must be between 1 and 4';
+  } else if (data.conditionId < 1 || data.conditionId > 5) {
+    errors.conditionId = 'Condition ID must be between 1 and 5';
   }
 
   // Return errors if any

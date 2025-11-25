@@ -178,8 +178,13 @@ const UserManagementPage: React.FC = () => {
   const isLoading = isLoadingUsers || isLoadingOperations;
 
   // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return 'Never';
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -270,7 +275,7 @@ const UserManagementPage: React.FC = () => {
               </TableRow>
             ) : (
               users.map((user) => (
-              <TableRow key={user.id}>
+                <TableRow key={user.id}>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PersonIcon color="action" />
@@ -344,16 +349,7 @@ const UserManagementPage: React.FC = () => {
                   </Box>
                 </TableCell>
               </TableRow>
-            )))}
-            
-            {!isLoadingUsers && users.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                    No users found matching your search criteria.
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
