@@ -322,11 +322,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     <Paper
       elevation={0}
       sx={{
-        p: 4,
-        maxWidth: 500,
+        p: { xs: 3, sm: 4 },
         width: '100%',
         border: 1,
         borderColor: 'divider',
+        borderRadius: { xs: 2, sm: 3 },
       }}
     >
       <Box component="form" onSubmit={handleSubmit} noValidate>

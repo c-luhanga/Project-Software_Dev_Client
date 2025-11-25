@@ -172,11 +172,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     <Paper
       elevation={0}
       sx={{
-        p: 4,
-        maxWidth: 400,
+        p: { xs: 3, sm: 4 },
         width: '100%',
         border: 1,
         borderColor: 'divider',
+        borderRadius: { xs: 2, sm: 3 },
       }}
     >
       <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -285,32 +285,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           disabled={!isFormValid || loading || disabled}
           sx={{
             py: 1.5,
-            mb: 2,
             fontWeight: 600,
           }}
         >
           {loading ? 'Signing In...' : submitButtonText}
         </Button>
-
-        {/* Additional Actions */}
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            Don't have an account?{' '}
-            <Button
-              variant="text"
-              size="small"
-              disabled={loading || disabled}
-              sx={{ 
-                textTransform: 'none',
-                fontWeight: 600,
-                p: 0,
-                minWidth: 'auto',
-              }}
-            >
-              Sign up
-            </Button>
-          </Typography>
-        </Box>
       </Box>
     </Paper>
   );
