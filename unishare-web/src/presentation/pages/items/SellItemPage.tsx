@@ -150,10 +150,16 @@ const SellItemPage: React.FC = () => {
             userMessage = result.error.message;
           }
         }
-        throw new Error(userMessage);
+          setSnackbarMessage(userMessage);
+          setSnackbarSeverity('error');
+          setShowSnackbar(true);
+          return;
       } else {
         console.error('❌ SellItemPage - Unexpected result type:', result);
-        throw new Error('Unexpected response from item creation');
+          setSnackbarMessage('Unexpected response from item creation');
+          setSnackbarSeverity('error');
+          setShowSnackbar(true);
+          return;
       }
     } catch (error) {
       console.error('❌ SellItemPage - Form submission error:', error);

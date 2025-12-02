@@ -207,7 +207,6 @@ const ItemDetailPage: React.FC = () => {
     try {
       // Clear any previous errors before starting
       dispatch(clearError());
-      
       console.log('🔍 Starting file upload with:', {
         itemId: currentItem.itemId,
         fileCount: files.length,
@@ -221,18 +220,27 @@ const ItemDetailPage: React.FC = () => {
 
       if (uploadItemImagesThunk.fulfilled.match(result)) {
         showFeedback('Images uploaded successfully!');
-        
         // Refresh the item to show updated images
         dispatch(getItemThunk(currentItem.itemId));
       } else if (uploadItemImagesThunk.rejected.match(result)) {
         const errorMsg = result.error.message || 'Failed to upload images';
         console.error('❌ Upload failed:', errorMsg);
-        throw new Error(errorMsg);
+        if (errorMsg.includes('unsupported type') || errorMsg.includes('Allowed: JPEG')) {
+          showFeedback('One or more files are not supported. Please upload only JPEG, PNG, GIF, WebP, or BMP images.', 'error');
+        } else {
+          showFeedback(errorMsg, 'error');
+        }
+        return;
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload images';
       console.error('❌ Upload error:', errorMessage);
-      showFeedback(errorMessage, 'error');
+      if (errorMessage.includes('unsupported type') || errorMessage.includes('Allowed: JPEG')) {
+        showFeedback('One or more files are not supported. Please upload only JPEG, PNG, GIF, WebP, or BMP images.', 'error');
+      } else {
+        showFeedback(errorMessage, 'error');
+      }
+      return;
     } finally {
       setShowAddImagesDialog(false);
     }
