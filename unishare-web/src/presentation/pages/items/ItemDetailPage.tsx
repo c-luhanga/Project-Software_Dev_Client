@@ -579,20 +579,6 @@ const ItemDetailPage: React.FC = () => {
     );
   }
 
-  if (error || adminError) {
-    // Determine if this is a loading error vs operation error
-    const isLoadingError = isLoading || adminIsLoading;
-    const errorMessage = error || adminError;
-    const errorTitle = isLoadingError ? "Failed to load item" : "Operation failed";
-    
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">
-          {errorTitle}: {errorMessage}
-        </Alert>
-      </Container>
-    );
-  }
 
   if (!currentItem) {
     return (
