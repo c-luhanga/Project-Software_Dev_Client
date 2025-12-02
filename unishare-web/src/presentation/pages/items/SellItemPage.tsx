@@ -57,7 +57,6 @@ const SellItemPage: React.FC = () => {
   const handleFormSubmit = async (command: CreateItemCommand, images?: File[]) => {
     try {
       console.log('🔍 SellItemPage - Starting form submission:', { command, imageCount: images?.length });
-      
       // Check authentication status before attempting to create item
       const authState = (window as any).store?.getState?.()?.auth;
       console.log('🔐 Current auth state:', {
@@ -66,15 +65,14 @@ const SellItemPage: React.FC = () => {
         userEmail: authState?.user?.email,
         status: authState?.status
       });
-      
+
       const result = await dispatch(createItemThunk(command));
-      
       console.log('🔍 SellItemPage - Create item result:', result);
-      
+
       if (createItemThunk.fulfilled.match(result)) {
         const newItemId = result.payload;
         console.log('✅ SellItemPage - Item created successfully with ID:', newItemId);
-        
+
         // If images were provided, upload them immediately
         if (images && images.length > 0) {
           try {
@@ -83,27 +81,39 @@ const SellItemPage: React.FC = () => {
               itemId: newItemId, 
               files: images 
             }));
-            
+
             if (uploadItemImagesThunk.fulfilled.match(uploadResult)) {
               console.log('✅ SellItemPage - Images uploaded successfully');
               setSnackbarMessage('Item created and images uploaded successfully!');
               setSnackbarSeverity('success');
               setShowSnackbar(true);
-              
-              // Navigate directly to the item
               setTimeout(() => navigate(`/items/${newItemId}`), 1500);
             } else {
-              console.warn('⚠️ SellItemPage - Image upload failed');
-              setSnackbarMessage('Item created but image upload failed');
-              setSnackbarSeverity('warning');
-              setShowSnackbar(true);
+              // Check for file type error in the error message
+              const errorMsg = uploadResult.error?.message || '';
+              if (errorMsg.includes('unsupported type') || errorMsg.includes('Allowed: JPEG')) {
+                setSnackbarMessage('One or more files are not supported. Please upload only JPEG, PNG, GIF, WebP, or BMP images.');
+                setSnackbarSeverity('error');
+                setShowSnackbar(true);
+              } else {
+                setSnackbarMessage('Item created but image upload failed');
+                setSnackbarSeverity('warning');
+                setShowSnackbar(true);
+              }
               setTimeout(() => navigate(`/items/${newItemId}`), 1500);
             }
           } catch (error) {
-            console.error('❌ SellItemPage - Image upload error:', error);
-            setSnackbarMessage('Item created but image upload failed');
-            setSnackbarSeverity('warning');
-            setShowSnackbar(true);
+            // Check for file type error in the error message
+            const errorMsg = error instanceof Error ? error.message : '';
+            if (errorMsg.includes('unsupported type') || errorMsg.includes('Allowed: JPEG')) {
+              setSnackbarMessage('One or more files are not supported. Please upload only JPEG, PNG, GIF, WebP, or BMP images.');
+              setSnackbarSeverity('error');
+              setShowSnackbar(true);
+            } else {
+              setSnackbarMessage('Item created but image upload failed');
+              setSnackbarSeverity('warning');
+              setShowSnackbar(true);
+            }
             setTimeout(() => navigate(`/items/${newItemId}`), 1500);
           }
         } else {
@@ -116,7 +126,6 @@ const SellItemPage: React.FC = () => {
         }
       } else if (createItemThunk.rejected.match(result)) {
         console.error('❌ SellItemPage - Item creation rejected:', result.error);
-        
         // Extract detailed error information
         const errorDetails = {
           message: result.error.message,
@@ -125,7 +134,7 @@ const SellItemPage: React.FC = () => {
           stack: result.error.stack
         };
         console.error('❌ SellItemPage - Error details:', errorDetails);
-        
+
         // Show user-friendly error message
         let userMessage = 'Failed to create item';
         if (result.error.message) {
@@ -133,13 +142,14 @@ const SellItemPage: React.FC = () => {
             userMessage = 'Please log in to create items';
           } else if (result.error.message.includes('403') || result.error.message.includes('Forbidden')) {
             userMessage = 'You must use a @principia.edu email to create items';
+          } else if (result.error.message.includes('unsupported type') || result.error.message.includes('Allowed: JPEG')) {
+            userMessage = 'One or more files are not supported. Please upload only JPEG, PNG, GIF, WebP, or BMP images.';
           } else if (result.error.message.includes('400') || result.error.message.includes('validation')) {
             userMessage = 'Please check all required fields and try again';
           } else {
             userMessage = result.error.message;
           }
         }
-        
         throw new Error(userMessage);
       } else {
         console.error('❌ SellItemPage - Unexpected result type:', result);
